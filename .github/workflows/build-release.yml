@@ -1,0 +1,69 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  release:
+    types: [ created ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '6.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore GameAutomation.csproj
+      
+    - name: Build application
+      run: dotnet build GameAutomation.csproj --configuration Release --no-restore
+      
+    - name: Publish self-contained executable
+      run: dotnet publish GameAutomation.csproj --configuration Release --runtime win-x64 --self-contained true --output ./publish
+      
+    - name: Create release package
+      run: |
+        mkdir release-package
+        copy publish\GameAutomation.exe release-package\
+        copy README.md release-package\
+        copy game-automation-plan.md release-package\
+        echo "PW Autobattler - Game Multi-Window Controller" > release-package\USAGE.txt
+        echo "" >> release-package\USAGE.txt
+        echo "1. Run GameAutomation.exe as Administrator" >> release-package\USAGE.txt
+        echo "2. Start multiple ElementClient.exe instances" >> release-package\USAGE.txt
+        echo "3. Use Ctrl+Shift+1/2/3 to register windows" >> release-package\USAGE.txt
+        echo "4. Use test buttons to send commands to all registered windows" >> release-package\USAGE.txt
+        echo "" >> release-package\USAGE.txt
+        echo "For detailed implementation information, see game-automation-plan.md" >> release-package\USAGE.txt
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: GameAutomation-win-x64
+        path: release-package/
+        retention-days: 30
+        
+    - name: Create Release Archive
+      if: github.event_name == 'release'
+      run: |
+        powershell Compress-Archive -Path release-package\* -DestinationPath GameAutomation-${{ github.event.release.tag_name }}-win-x64.zip
+        
+    - name: Upload Release Asset
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./GameAutomation-${{ github.event.release.tag_name }}-win-x64.zip
+        asset_name: GameAutomation-${{ github.event.release.tag_name }}-win-x64.zip
+        asset_content_type: application/zip
