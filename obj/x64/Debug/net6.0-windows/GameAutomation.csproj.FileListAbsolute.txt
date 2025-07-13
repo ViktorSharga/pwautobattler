@@ -1,0 +1,15 @@
+/Users/viktorsarga/autobattler/obj/x64/Debug/net6.0-windows/GameAutomation.GeneratedMSBuildEditorConfig.editorconfig
+/Users/viktorsarga/autobattler/obj/x64/Debug/net6.0-windows/GameAutomation.AssemblyInfoInputs.cache
+/Users/viktorsarga/autobattler/obj/x64/Debug/net6.0-windows/GameAutomation.AssemblyInfo.cs
+/Users/viktorsarga/autobattler/obj/x64/Debug/net6.0-windows/GameAutomation.csproj.CoreCompileInputs.cache
+/Users/viktorsarga/autobattler/obj/x64/Debug/net6.0-windows/GameAutomation.sourcelink.json
+/Users/viktorsarga/autobattler/bin/x64/Debug/net6.0-windows/GameAutomation
+/Users/viktorsarga/autobattler/bin/x64/Debug/net6.0-windows/GameAutomation.deps.json
+/Users/viktorsarga/autobattler/bin/x64/Debug/net6.0-windows/GameAutomation.runtimeconfig.json
+/Users/viktorsarga/autobattler/bin/x64/Debug/net6.0-windows/GameAutomation.dll
+/Users/viktorsarga/autobattler/bin/x64/Debug/net6.0-windows/GameAutomation.pdb
+/Users/viktorsarga/autobattler/obj/x64/Debug/net6.0-windows/GameAutomation.dll
+/Users/viktorsarga/autobattler/obj/x64/Debug/net6.0-windows/refint/GameAutomation.dll
+/Users/viktorsarga/autobattler/obj/x64/Debug/net6.0-windows/GameAutomation.pdb
+/Users/viktorsarga/autobattler/obj/x64/Debug/net6.0-windows/GameAutomation.genruntimeconfig.cache
+/Users/viktorsarga/autobattler/obj/x64/Debug/net6.0-windows/ref/GameAutomation.dll
