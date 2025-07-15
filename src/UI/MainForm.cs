@@ -371,28 +371,42 @@ namespace GameAutomation.UI
             // Store current foreground window
             var currentWindow = GetForegroundWindow();
             
-            // Use the selected method from dropdown
-            var method = _inputSimulator.CurrentMethod;
-            foreach (var window in windows)
+            // Temporarily disable global key listener to prevent infinite loop
+            _keyboardHook?.StopListening();
+            
+            try
             {
-                if (window.IsActive)
+                // Use the selected method from dropdown
+                var method = _inputSimulator.CurrentMethod;
+                foreach (var window in windows)
                 {
-                    _inputSimulator.SendKeyPress(window.WindowHandle, keyCode, method);
+                    if (window.IsActive)
+                    {
+                        _inputSimulator.SendKeyPress(window.WindowHandle, keyCode, method);
+                    }
+                }
+                
+                // Return to window 1 if it exists and is active
+                if (_registeredWindows.ContainsKey(1) && _registeredWindows[1].IsActive)
+                {
+                    SetForegroundWindow(_registeredWindows[1].WindowHandle);
+                }
+                else
+                {
+                    // If window 1 doesn't exist, return to original window
+                    SetForegroundWindow(currentWindow);
+                }
+                
+                UpdateStatus($"Broadcasted key {keyNumber} to {windows.Count} windows using {method} method.");
+            }
+            finally
+            {
+                // Re-enable global key listener if broadcast mode is still on
+                if (_broadcastMode)
+                {
+                    _keyboardHook?.StartListening();
                 }
             }
-            
-            // Return to window 1 if it exists and is active
-            if (_registeredWindows.ContainsKey(1) && _registeredWindows[1].IsActive)
-            {
-                SetForegroundWindow(_registeredWindows[1].WindowHandle);
-            }
-            else
-            {
-                // If window 1 doesn't exist, return to original window
-                SetForegroundWindow(currentWindow);
-            }
-            
-            UpdateStatus($"Broadcasted key {keyNumber} to {windows.Count} windows using {method} method.");
         }
 
         private void SetupGlobalKeyListener()
