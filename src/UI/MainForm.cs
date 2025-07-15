@@ -23,9 +23,6 @@ namespace GameAutomation.UI
         private ListBox _windowListBox = null!;
         private Button _refreshButton = null!;
         private Button _sendQButton = null!;
-        private Button _send1Button = null!;
-        private Button _startMovementButton = null!;
-        private Button _stopMovementButton = null!;
         private Label _statusLabel = null!;
         private ComboBox _methodComboBox = null!;
         private Button _testAllMethodsButton = null!;
@@ -37,6 +34,15 @@ namespace GameAutomation.UI
         private bool _mouseMirroringMode = false;
         private MouseHook? _mouseHook;
         private BackgroundMouseSimulator? _backgroundMouseSimulator;
+        
+        // Coordinate calibration
+        private Button _calibrateCoord1Button = null!;
+        private Button _calibrateCoord2Button = null!;
+        private Button _followLeaderButton = null!;
+        private System.Drawing.Point _coordinate1 = new System.Drawing.Point(0, 0);
+        private System.Drawing.Point _coordinate2 = new System.Drawing.Point(0, 0);
+        private bool _calibrationMode = false;
+        private bool _calibratingCoord1 = false;
 
         public MainForm()
         {
@@ -57,6 +63,7 @@ namespace GameAutomation.UI
             _mouseHook = new MouseHook();
             _mouseHook.CtrlLeftClick += OnCtrlLeftClick;
             _mouseHook.CtrlRightClick += OnCtrlRightClick;
+            _mouseHook.StartListening(); // Always listen for calibration
             _backgroundMouseSimulator = new BackgroundMouseSimulator();
         }
 
@@ -151,29 +158,30 @@ namespace GameAutomation.UI
             };
             _sendQButton.Click += SendQButton_Click;
 
-            _send1Button = new Button
+            // Coordinate calibration buttons
+            _calibrateCoord1Button = new Button
             {
-                Text = "Send 1 to All",
+                Text = "Calibrate Coord 1",
                 Location = new System.Drawing.Point(120, 270),
                 Size = new System.Drawing.Size(100, 30)
             };
-            _send1Button.Click += Send1Button_Click;
+            _calibrateCoord1Button.Click += CalibrateCoord1Button_Click;
 
-            _startMovementButton = new Button
+            _calibrateCoord2Button = new Button
             {
-                Text = "Start Movement",
+                Text = "Calibrate Coord 2",
+                Location = new System.Drawing.Point(230, 270),
+                Size = new System.Drawing.Size(100, 30)
+            };
+            _calibrateCoord2Button.Click += CalibrateCoord2Button_Click;
+
+            _followLeaderButton = new Button
+            {
+                Text = "Follow Leader",
                 Location = new System.Drawing.Point(10, 310),
                 Size = new System.Drawing.Size(100, 30)
             };
-            _startMovementButton.Click += StartMovementButton_Click;
-
-            _stopMovementButton = new Button
-            {
-                Text = "Stop Movement",
-                Location = new System.Drawing.Point(120, 310),
-                Size = new System.Drawing.Size(100, 30)
-            };
-            _stopMovementButton.Click += StopMovementButton_Click;
+            _followLeaderButton.Click += FollowLeaderButton_Click;
 
             // Status
             _statusLabel = new Label
@@ -204,9 +212,9 @@ namespace GameAutomation.UI
             Controls.Add(_mouseMirroringCheckBox);
             Controls.Add(testLabel);
             Controls.Add(_sendQButton);
-            Controls.Add(_send1Button);
-            Controls.Add(_startMovementButton);
-            Controls.Add(_stopMovementButton);
+            Controls.Add(_calibrateCoord1Button);
+            Controls.Add(_calibrateCoord2Button);
+            Controls.Add(_followLeaderButton);
             Controls.Add(_statusLabel);
             Controls.Add(instructionsLabel);
         }
@@ -224,6 +232,9 @@ namespace GameAutomation.UI
             _hotkeyManager.RegisterHotkey(Keys.D8, () => RegisterWindow(8));
             _hotkeyManager.RegisterHotkey(Keys.D9, () => RegisterWindow(9));
             _hotkeyManager.RegisterHotkey(Keys.D0, () => RegisterWindow(10));
+            
+            // Ctrl+F for follow leader
+            _hotkeyManager.RegisterHotkeyWithModifiers(Keys.F, 0x0002, () => FollowLeader()); // MOD_CONTROL = 0x0002
         }
 
         private void RegisterWindow(int slot)
@@ -290,29 +301,72 @@ namespace GameAutomation.UI
             UpdateStatus($"Sent Q key to {windows.Count} windows using {method} method.");
         }
 
-        private void Send1Button_Click(object? sender, EventArgs e)
+        private void CalibrateCoord1Button_Click(object? sender, EventArgs e)
         {
-            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
-            var method = _inputSimulator.CurrentMethod;
-            
-            _inputSimulator.BroadcastToAll(windows, hwnd => 
-                _inputSimulator.SendKeyPress(hwnd, VirtualKeyCode.VK_1, method));
-            
-            UpdateStatus($"Sent 1 key to {windows.Count} windows using {method} method.");
+            _calibrationMode = true;
+            _calibratingCoord1 = true;
+            _calibrateCoord1Button.Text = "Click target...";
+            _calibrateCoord1Button.Enabled = false;
+            UpdateStatus("Calibration mode: Click on the target location for coordinate 1.");
         }
 
-        private void StartMovementButton_Click(object? sender, EventArgs e)
+        private void CalibrateCoord2Button_Click(object? sender, EventArgs e)
         {
-            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
-            _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyDown(hwnd, VirtualKeyCode.VK_W));
-            UpdateStatus($"Started movement (W key down) for {windows.Count} windows.");
+            _calibrationMode = true;
+            _calibratingCoord1 = false;
+            _calibrateCoord2Button.Text = "Click target...";
+            _calibrateCoord2Button.Enabled = false;
+            UpdateStatus("Calibration mode: Click on the target location for coordinate 2.");
         }
 
-        private void StopMovementButton_Click(object? sender, EventArgs e)
+        private void FollowLeaderButton_Click(object? sender, EventArgs e)
         {
-            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
-            _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyUp(hwnd, VirtualKeyCode.VK_W));
-            UpdateStatus($"Stopped movement (W key up) for {windows.Count} windows.");
+            FollowLeader();
+        }
+
+        private void FollowLeader()
+        {
+            var windows = _registeredWindows.Values.Where(w => w.IsActive).Skip(1).ToList(); // Skip first window (leader)
+            
+            if (windows.Count == 0)
+            {
+                UpdateStatus("No follower windows found. Register windows first using Ctrl+Shift+1-9/0.");
+                return;
+            }
+
+            if (_coordinate1.IsEmpty || _coordinate2.IsEmpty)
+            {
+                UpdateStatus("Please calibrate both coordinates first using the calibration buttons.");
+                return;
+            }
+
+            try
+            {
+                var method = _inputSimulator.CurrentMethod;
+                
+                foreach (var window in windows)
+                {
+                    // Press Shift+1
+                    _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_1, method, true, false, false); // Shift+1
+                    System.Threading.Thread.Sleep(100);
+                    
+                    // Right click on coordinate 1
+                    _backgroundMouseSimulator?.SendMouseClick(window.WindowHandle, _coordinate1.X, _coordinate1.Y, 
+                        BackgroundMouseSimulator.MouseButton.Right);
+                    System.Threading.Thread.Sleep(100);
+                    
+                    // Left click on coordinate 2
+                    _backgroundMouseSimulator?.SendMouseClick(window.WindowHandle, _coordinate2.X, _coordinate2.Y, 
+                        BackgroundMouseSimulator.MouseButton.Left);
+                    System.Threading.Thread.Sleep(100);
+                }
+                
+                UpdateStatus($"Follow leader executed for {windows.Count} windows. Coord1: ({_coordinate1.X}, {_coordinate1.Y}), Coord2: ({_coordinate2.X}, {_coordinate2.Y})");
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error in follow leader: {ex.Message}");
+            }
         }
 
         private void UpdateWindowList()
@@ -484,6 +538,27 @@ namespace GameAutomation.UI
 
         private void OnCtrlLeftClick(object? sender, MouseHook.MouseEventArgs e)
         {
+            // Handle calibration mode first
+            if (_calibrationMode)
+            {
+                if (_calibratingCoord1)
+                {
+                    _coordinate1 = new System.Drawing.Point(e.X, e.Y);
+                    _calibrateCoord1Button.Text = $"Coord 1: ({e.X}, {e.Y})";
+                    _calibrateCoord1Button.Enabled = true;
+                    UpdateStatus($"Coordinate 1 calibrated to ({e.X}, {e.Y})");
+                }
+                else
+                {
+                    _coordinate2 = new System.Drawing.Point(e.X, e.Y);
+                    _calibrateCoord2Button.Text = $"Coord 2: ({e.X}, {e.Y})";
+                    _calibrateCoord2Button.Enabled = true;
+                    UpdateStatus($"Coordinate 2 calibrated to ({e.X}, {e.Y})");
+                }
+                _calibrationMode = false;
+                return;
+            }
+            
             if (!_mouseMirroringMode) return;
             
             var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
@@ -499,6 +574,27 @@ namespace GameAutomation.UI
 
         private void OnCtrlRightClick(object? sender, MouseHook.MouseEventArgs e)
         {
+            // Handle calibration mode first
+            if (_calibrationMode)
+            {
+                if (_calibratingCoord1)
+                {
+                    _coordinate1 = new System.Drawing.Point(e.X, e.Y);
+                    _calibrateCoord1Button.Text = $"Coord 1: ({e.X}, {e.Y})";
+                    _calibrateCoord1Button.Enabled = true;
+                    UpdateStatus($"Coordinate 1 calibrated to ({e.X}, {e.Y})");
+                }
+                else
+                {
+                    _coordinate2 = new System.Drawing.Point(e.X, e.Y);
+                    _calibrateCoord2Button.Text = $"Coord 2: ({e.X}, {e.Y})";
+                    _calibrateCoord2Button.Enabled = true;
+                    UpdateStatus($"Coordinate 2 calibrated to ({e.X}, {e.Y})");
+                }
+                _calibrationMode = false;
+                return;
+            }
+            
             if (!_mouseMirroringMode) return;
             
             var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();

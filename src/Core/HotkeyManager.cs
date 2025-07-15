@@ -41,6 +41,19 @@ namespace GameAutomation.Core
             return success;
         }
 
+        public bool RegisterHotkeyWithModifiers(Keys key, uint modifiers, Action callback)
+        {
+            var hotkeyId = _currentHotkeyId++;
+
+            var success = RegisterHotKey(_hiddenForm.Handle, hotkeyId, modifiers, (uint)key);
+            if (success)
+            {
+                _hotkeyCallbacks[hotkeyId] = callback;
+            }
+
+            return success;
+        }
+
         public void StartListening()
         {
             Application.AddMessageFilter(new HotkeyMessageFilter(this));

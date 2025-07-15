@@ -22,7 +22,10 @@ namespace GameAutomation.Core
         VK_6 = 0x36,
         VK_7 = 0x37,
         VK_8 = 0x38,
-        VK_9 = 0x39
+        VK_9 = 0x39,
+        VK_SHIFT = 0x10,
+        VK_CONTROL = 0x11,
+        VK_MENU = 0x12
     }
 
     public enum InputMethod
@@ -155,6 +158,35 @@ namespace GameAutomation.Core
                     return SendKeyPressKeyboardEventOptimized(windowHandle, key);
                 default:
                     return SendKeyPressPostMessage(windowHandle, key);
+            }
+        }
+
+        public bool SendKeyPress(IntPtr windowHandle, VirtualKeyCode key, InputMethod method, bool shift, bool ctrl, bool alt)
+        {
+            if (!ValidateWindow(windowHandle))
+                return false;
+
+            try
+            {
+                // Send modifier key down events
+                if (shift) SendKeyDown(windowHandle, VirtualKeyCode.VK_SHIFT);
+                if (ctrl) SendKeyDown(windowHandle, VirtualKeyCode.VK_CONTROL);
+                if (alt) SendKeyDown(windowHandle, VirtualKeyCode.VK_MENU);
+
+                // Send the main key
+                bool result = SendKeyPress(windowHandle, key, method);
+
+                // Send modifier key up events
+                if (alt) SendKeyUp(windowHandle, VirtualKeyCode.VK_MENU);
+                if (ctrl) SendKeyUp(windowHandle, VirtualKeyCode.VK_CONTROL);
+                if (shift) SendKeyUp(windowHandle, VirtualKeyCode.VK_SHIFT);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error sending key press with modifiers: {ex.Message}");
+                return false;
             }
         }
 
