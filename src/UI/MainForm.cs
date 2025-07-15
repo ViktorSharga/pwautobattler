@@ -33,6 +33,10 @@ namespace GameAutomation.UI
         private CheckBox _broadcastModeCheckBox = null!;
         private bool _broadcastMode = false;
         private LowLevelKeyboardHook? _keyboardHook;
+        private CheckBox _mouseMirroringCheckBox = null!;
+        private bool _mouseMirroringMode = false;
+        private MouseHook? _mouseHook;
+        private BackgroundMouseSimulator? _backgroundMouseSimulator;
 
         public MainForm()
         {
@@ -48,12 +52,18 @@ namespace GameAutomation.UI
             // Initialize keyboard hook
             _keyboardHook = new LowLevelKeyboardHook();
             _keyboardHook.KeyDown += OnGlobalKeyDown;
+            
+            // Initialize mouse hook and simulator
+            _mouseHook = new MouseHook();
+            _mouseHook.CtrlLeftClick += OnCtrlLeftClick;
+            _mouseHook.CtrlRightClick += OnCtrlRightClick;
+            _backgroundMouseSimulator = new BackgroundMouseSimulator();
         }
 
         private void InitializeComponent()
         {
             Text = "Game Multi-Window Controller";
-            Size = new System.Drawing.Size(550, 500);
+            Size = new System.Drawing.Size(550, 530);
             StartPosition = FormStartPosition.CenterScreen;
 
             // Window list
@@ -115,18 +125,28 @@ namespace GameAutomation.UI
             };
             _broadcastModeCheckBox.CheckedChanged += BroadcastModeCheckBox_CheckedChanged;
 
+            // Mouse mirroring mode
+            _mouseMirroringCheckBox = new CheckBox
+            {
+                Text = "Mouse Mirroring (Ctrl+Click)",
+                Location = new System.Drawing.Point(340, 210),
+                Size = new System.Drawing.Size(150, 25),
+                Font = new System.Drawing.Font("Microsoft Sans Serif", 8F)
+            };
+            _mouseMirroringCheckBox.CheckedChanged += MouseMirroringCheckBox_CheckedChanged;
+
             // Test controls
             var testLabel = new Label
             {
                 Text = "Test Controls:",
-                Location = new System.Drawing.Point(10, 215),
+                Location = new System.Drawing.Point(10, 245),
                 Size = new System.Drawing.Size(200, 20)
             };
 
             _sendQButton = new Button
             {
                 Text = "Send Q to All",
-                Location = new System.Drawing.Point(10, 240),
+                Location = new System.Drawing.Point(10, 270),
                 Size = new System.Drawing.Size(100, 30)
             };
             _sendQButton.Click += SendQButton_Click;
@@ -134,7 +154,7 @@ namespace GameAutomation.UI
             _send1Button = new Button
             {
                 Text = "Send 1 to All",
-                Location = new System.Drawing.Point(120, 240),
+                Location = new System.Drawing.Point(120, 270),
                 Size = new System.Drawing.Size(100, 30)
             };
             _send1Button.Click += Send1Button_Click;
@@ -142,7 +162,7 @@ namespace GameAutomation.UI
             _startMovementButton = new Button
             {
                 Text = "Start Movement",
-                Location = new System.Drawing.Point(10, 280),
+                Location = new System.Drawing.Point(10, 310),
                 Size = new System.Drawing.Size(100, 30)
             };
             _startMovementButton.Click += StartMovementButton_Click;
@@ -150,7 +170,7 @@ namespace GameAutomation.UI
             _stopMovementButton = new Button
             {
                 Text = "Stop Movement",
-                Location = new System.Drawing.Point(120, 280),
+                Location = new System.Drawing.Point(120, 310),
                 Size = new System.Drawing.Size(100, 30)
             };
             _stopMovementButton.Click += StopMovementButton_Click;
@@ -159,7 +179,7 @@ namespace GameAutomation.UI
             _statusLabel = new Label
             {
                 Text = "Status: Ready. Use Ctrl+Shift+1-9/0 to register windows.",
-                Location = new System.Drawing.Point(10, 330),
+                Location = new System.Drawing.Point(10, 360),
                 Size = new System.Drawing.Size(510, 100),
                 BorderStyle = BorderStyle.Fixed3D
             };
@@ -168,7 +188,7 @@ namespace GameAutomation.UI
             var instructionsLabel = new Label
             {
                 Text = "Note: KeyboardEventOptimized is recommended for most games.\nIt minimizes window flickering and supports proper movement.",
-                Location = new System.Drawing.Point(10, 440),
+                Location = new System.Drawing.Point(10, 470),
                 Size = new System.Drawing.Size(510, 40),
                 ForeColor = System.Drawing.Color.DarkGreen
             };
@@ -181,6 +201,7 @@ namespace GameAutomation.UI
             Controls.Add(_methodComboBox);
             Controls.Add(_testAllMethodsButton);
             Controls.Add(_broadcastModeCheckBox);
+            Controls.Add(_mouseMirroringCheckBox);
             Controls.Add(testLabel);
             Controls.Add(_sendQButton);
             Controls.Add(_send1Button);
@@ -445,9 +466,56 @@ namespace GameAutomation.UI
             }
         }
 
+        private void MouseMirroringCheckBox_CheckedChanged(object? sender, EventArgs e)
+        {
+            _mouseMirroringMode = _mouseMirroringCheckBox.Checked;
+            
+            if (_mouseMirroringMode)
+            {
+                _mouseHook?.StartListening();
+            }
+            else
+            {
+                _mouseHook?.StopListening();
+            }
+            
+            UpdateStatus($"Mouse mirroring {(_mouseMirroringMode ? "enabled" : "disabled")}. {(_mouseMirroringMode ? "Ctrl+Click to mirror to all windows." : "")}");
+        }
+
+        private void OnCtrlLeftClick(object? sender, MouseHook.MouseEventArgs e)
+        {
+            if (!_mouseMirroringMode) return;
+            
+            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+            if (windows.Count == 0)
+            {
+                UpdateStatus("No active windows to mirror mouse clicks to.");
+                return;
+            }
+
+            _backgroundMouseSimulator?.BroadcastMouseClick(windows, e.X, e.Y, BackgroundMouseSimulator.MouseButton.Left);
+            UpdateStatus($"Mirrored left click at ({e.X}, {e.Y}) to {windows.Count} windows.");
+        }
+
+        private void OnCtrlRightClick(object? sender, MouseHook.MouseEventArgs e)
+        {
+            if (!_mouseMirroringMode) return;
+            
+            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+            if (windows.Count == 0)
+            {
+                UpdateStatus("No active windows to mirror mouse clicks to.");
+                return;
+            }
+
+            _backgroundMouseSimulator?.BroadcastMouseClick(windows, e.X, e.Y, BackgroundMouseSimulator.MouseButton.Right);
+            UpdateStatus($"Mirrored right click at ({e.X}, {e.Y}) to {windows.Count} windows.");
+        }
+
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             _keyboardHook?.Dispose();
+            _mouseHook?.Dispose();
             _hotkeyManager?.Dispose();
             base.OnFormClosed(e);
         }
