@@ -17,99 +17,49 @@ namespace GameAutomation.Core
 
     public class InputSimulator
     {
-        private const int INPUT_KEYBOARD = 1;
-        private const int KEYEVENTF_KEYUP = 0x0002;
-        private const int KEYEVENTF_SCANCODE = 0x0008;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct INPUT
-        {
-            public int type;
-            public InputUnion u;
-        }
-
-        [StructLayout(LayoutKind.Explicit)]
-        private struct InputUnion
-        {
-            [FieldOffset(0)]
-            public MOUSEINPUT mi;
-            [FieldOffset(0)]
-            public KEYBDINPUT ki;
-            [FieldOffset(0)]
-            public HARDWAREINPUT hi;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct KEYBDINPUT
-        {
-            public ushort wVk;
-            public ushort wScan;
-            public uint dwFlags;
-            public uint time;
-            public IntPtr dwExtraInfo;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct MOUSEINPUT
-        {
-            public int dx;
-            public int dy;
-            public uint mouseData;
-            public uint dwFlags;
-            public uint time;
-            public IntPtr dwExtraInfo;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct HARDWAREINPUT
-        {
-            public uint uMsg;
-            public ushort wParamL;
-            public ushort wParamH;
-        }
+        private const int WM_KEYDOWN = 0x0100;
+        private const int WM_KEYUP = 0x0101;
+        private const int WM_CHAR = 0x0102;
+        private const int WM_SYSKEYDOWN = 0x0104;
+        private const int WM_SYSKEYUP = 0x0105;
 
         [DllImport("user32.dll")]
-        private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+        private static extern IntPtr PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetForegroundWindow();
+        private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll")]
         private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
-        private IntPtr _originalForegroundWindow;
+        [DllImport("user32.dll")]
+        private static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
 
         public bool SendKeyPress(IntPtr windowHandle, VirtualKeyCode key)
         {
+            if (!ValidateWindow(windowHandle))
+                return false;
+
             try
             {
-                // Save current foreground window
-                _originalForegroundWindow = GetForegroundWindow();
+                // Get scan code for the key
+                uint scanCode = MapVirtualKey((uint)key, 0);
+                
+                // Create lParam with scan code and other flags
+                IntPtr lParam = new IntPtr((scanCode << 16) | 1);
+                IntPtr lParamUp = new IntPtr((scanCode << 16) | 0xC0000001);
 
-                // Temporarily focus the target window
-                SetForegroundWindow(windowHandle);
-                Thread.Sleep(10); // Small delay to ensure focus
+                // Send key down
+                PostMessage(windowHandle, WM_KEYDOWN, new IntPtr((int)key), lParam);
+                Thread.Sleep(50); // Small delay between down and up
 
-                // Create key down and key up inputs
-                var inputs = new INPUT[]
-                {
-                    CreateKeyInput(key, false), // Key down
-                    CreateKeyInput(key, true)   // Key up
-                };
+                // Send key up
+                PostMessage(windowHandle, WM_KEYUP, new IntPtr((int)key), lParamUp);
 
-                // Send the input
-                var result = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
-
-                // Restore original focus
-                if (_originalForegroundWindow != IntPtr.Zero)
-                {
-                    SetForegroundWindow(_originalForegroundWindow);
-                }
-
-                return result == inputs.Length;
+                return true;
             }
             catch (Exception)
             {
@@ -119,21 +69,16 @@ namespace GameAutomation.Core
 
         public bool SendKeyDown(IntPtr windowHandle, VirtualKeyCode key)
         {
+            if (!ValidateWindow(windowHandle))
+                return false;
+
             try
             {
-                _originalForegroundWindow = GetForegroundWindow();
-                SetForegroundWindow(windowHandle);
-                Thread.Sleep(10);
+                uint scanCode = MapVirtualKey((uint)key, 0);
+                IntPtr lParam = new IntPtr((scanCode << 16) | 1);
 
-                var input = CreateKeyInput(key, false);
-                var result = SendInput(1, new[] { input }, Marshal.SizeOf(typeof(INPUT)));
-
-                if (_originalForegroundWindow != IntPtr.Zero)
-                {
-                    SetForegroundWindow(_originalForegroundWindow);
-                }
-
-                return result == 1;
+                PostMessage(windowHandle, WM_KEYDOWN, new IntPtr((int)key), lParam);
+                return true;
             }
             catch (Exception)
             {
@@ -143,21 +88,16 @@ namespace GameAutomation.Core
 
         public bool SendKeyUp(IntPtr windowHandle, VirtualKeyCode key)
         {
+            if (!ValidateWindow(windowHandle))
+                return false;
+
             try
             {
-                _originalForegroundWindow = GetForegroundWindow();
-                SetForegroundWindow(windowHandle);
-                Thread.Sleep(10);
+                uint scanCode = MapVirtualKey((uint)key, 0);
+                IntPtr lParam = new IntPtr((scanCode << 16) | 0xC0000001);
 
-                var input = CreateKeyInput(key, true);
-                var result = SendInput(1, new[] { input }, Marshal.SizeOf(typeof(INPUT)));
-
-                if (_originalForegroundWindow != IntPtr.Zero)
-                {
-                    SetForegroundWindow(_originalForegroundWindow);
-                }
-
-                return result == 1;
+                PostMessage(windowHandle, WM_KEYUP, new IntPtr((int)key), lParam);
+                return true;
             }
             catch (Exception)
             {
@@ -169,31 +109,60 @@ namespace GameAutomation.Core
         {
             foreach (var window in windows)
             {
-                if (window.IsActive)
+                if (window.IsActive && ValidateWindow(window.WindowHandle))
                 {
                     inputAction(window.WindowHandle);
-                    Thread.Sleep(50); // Delay between windows
+                    Thread.Sleep(100); // Delay between windows
                 }
             }
         }
 
-        private INPUT CreateKeyInput(VirtualKeyCode key, bool isKeyUp)
+        // Alternative method using SendMessage for games that require it
+        public bool SendKeyPressWithSendMessage(IntPtr windowHandle, VirtualKeyCode key)
         {
-            return new INPUT
+            if (!ValidateWindow(windowHandle))
+                return false;
+
+            try
             {
-                type = INPUT_KEYBOARD,
-                u = new InputUnion
-                {
-                    ki = new KEYBDINPUT
-                    {
-                        wVk = (ushort)key,
-                        wScan = (ushort)MapVirtualKey((uint)key, 0),
-                        dwFlags = (uint)(isKeyUp ? KEYEVENTF_KEYUP : 0) | KEYEVENTF_SCANCODE,
-                        time = 0,
-                        dwExtraInfo = IntPtr.Zero
-                    }
-                }
-            };
+                uint scanCode = MapVirtualKey((uint)key, 0);
+                IntPtr lParam = new IntPtr((scanCode << 16) | 1);
+                IntPtr lParamUp = new IntPtr((scanCode << 16) | 0xC0000001);
+
+                // Use SendMessage instead of PostMessage for immediate processing
+                SendMessage(windowHandle, WM_KEYDOWN, new IntPtr((int)key), lParam);
+                Thread.Sleep(50);
+                SendMessage(windowHandle, WM_KEYUP, new IntPtr((int)key), lParamUp);
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        // Method to try different approaches for stubborn games
+        public bool SendKeyPressMultiMethod(IntPtr windowHandle, VirtualKeyCode key)
+        {
+            if (!ValidateWindow(windowHandle))
+                return false;
+
+            // Try PostMessage first (most compatible)
+            if (SendKeyPress(windowHandle, key))
+            {
+                return true;
+            }
+
+            Thread.Sleep(100);
+
+            // Try SendMessage as fallback
+            return SendKeyPressWithSendMessage(windowHandle, key);
+        }
+
+        private bool ValidateWindow(IntPtr windowHandle)
+        {
+            return windowHandle != IntPtr.Zero && IsWindow(windowHandle) && IsWindowVisible(windowHandle);
         }
     }
 }

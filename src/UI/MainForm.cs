@@ -64,9 +64,9 @@ namespace GameAutomation.UI
             // Test controls
             var testLabel = new Label
             {
-                Text = "Test Controls:",
+                Text = "Test Controls (PostMessage/SendMessage):",
                 Location = new System.Drawing.Point(10, 185),
-                Size = new System.Drawing.Size(200, 20)
+                Size = new System.Drawing.Size(250, 20)
             };
 
             _sendQButton = new Button
@@ -155,29 +155,29 @@ namespace GameAutomation.UI
         private void SendQButton_Click(object? sender, EventArgs e)
         {
             var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
-            _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyPress(hwnd, VirtualKeyCode.VK_Q));
-            UpdateStatus($"Sent Q key to {windows.Count} windows.");
+            _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyPressMultiMethod(hwnd, VirtualKeyCode.VK_Q));
+            UpdateStatus($"Sent Q key to {windows.Count} windows using multi-method approach.");
         }
 
         private void Send1Button_Click(object? sender, EventArgs e)
         {
             var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
-            _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyPress(hwnd, VirtualKeyCode.VK_1));
-            UpdateStatus($"Sent 1 key to {windows.Count} windows.");
+            _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyPressMultiMethod(hwnd, VirtualKeyCode.VK_1));
+            UpdateStatus($"Sent 1 key to {windows.Count} windows using multi-method approach.");
         }
 
         private void StartMovementButton_Click(object? sender, EventArgs e)
         {
             var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
             _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyDown(hwnd, VirtualKeyCode.VK_W));
-            UpdateStatus($"Started movement (W key down) for {windows.Count} windows.");
+            UpdateStatus($"Started movement (W key down) for {windows.Count} windows using PostMessage.");
         }
 
         private void StopMovementButton_Click(object? sender, EventArgs e)
         {
             var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
             _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyUp(hwnd, VirtualKeyCode.VK_W));
-            UpdateStatus($"Stopped movement (W key up) for {windows.Count} windows.");
+            UpdateStatus($"Stopped movement (W key up) for {windows.Count} windows using PostMessage.");
         }
 
         private void UpdateWindowList()
