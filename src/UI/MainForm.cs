@@ -24,6 +24,8 @@ namespace GameAutomation.UI
         private ComboBox _methodComboBox = null!;
         private Button _testAllMethodsButton = null!;
         private Label _methodLabel = null!;
+        private CheckBox _broadcastModeCheckBox = null!;
+        private bool _broadcastMode = false;
 
         public MainForm()
         {
@@ -91,6 +93,16 @@ namespace GameAutomation.UI
             };
             _testAllMethodsButton.Click += TestAllMethodsButton_Click;
 
+            // Broadcast mode
+            _broadcastModeCheckBox = new CheckBox
+            {
+                Text = "Broadcast Mode (Listen 1-9)",
+                Location = new System.Drawing.Point(340, 182),
+                Size = new System.Drawing.Size(150, 25),
+                Font = new System.Drawing.Font("Microsoft Sans Serif", 8F)
+            };
+            _broadcastModeCheckBox.CheckedChanged += BroadcastModeCheckBox_CheckedChanged;
+
             // Test controls
             var testLabel = new Label
             {
@@ -134,7 +146,7 @@ namespace GameAutomation.UI
             // Status
             _statusLabel = new Label
             {
-                Text = "Status: Ready. Use Ctrl+Shift+1/2/3 to register windows.",
+                Text = "Status: Ready. Use Ctrl+Shift+1-9/0 to register windows.",
                 Location = new System.Drawing.Point(10, 330),
                 Size = new System.Drawing.Size(510, 100),
                 BorderStyle = BorderStyle.Fixed3D
@@ -156,6 +168,7 @@ namespace GameAutomation.UI
             Controls.Add(_methodLabel);
             Controls.Add(_methodComboBox);
             Controls.Add(_testAllMethodsButton);
+            Controls.Add(_broadcastModeCheckBox);
             Controls.Add(testLabel);
             Controls.Add(_sendQButton);
             Controls.Add(_send1Button);
@@ -167,9 +180,16 @@ namespace GameAutomation.UI
 
         private void SetupHotkeys()
         {
-            _hotkeyManager.RegisterHotkey(Keys.D1, () => RegisterWindow(1));
-            _hotkeyManager.RegisterHotkey(Keys.D2, () => RegisterWindow(2));
-            _hotkeyManager.RegisterHotkey(Keys.D3, () => RegisterWindow(3));
+            _hotkeyManager.RegisterHotkey(Keys.D1, () => HandleKeyPress(1));
+            _hotkeyManager.RegisterHotkey(Keys.D2, () => HandleKeyPress(2));
+            _hotkeyManager.RegisterHotkey(Keys.D3, () => HandleKeyPress(3));
+            _hotkeyManager.RegisterHotkey(Keys.D4, () => HandleKeyPress(4));
+            _hotkeyManager.RegisterHotkey(Keys.D5, () => HandleKeyPress(5));
+            _hotkeyManager.RegisterHotkey(Keys.D6, () => HandleKeyPress(6));
+            _hotkeyManager.RegisterHotkey(Keys.D7, () => HandleKeyPress(7));
+            _hotkeyManager.RegisterHotkey(Keys.D8, () => HandleKeyPress(8));
+            _hotkeyManager.RegisterHotkey(Keys.D9, () => HandleKeyPress(9));
+            _hotkeyManager.RegisterHotkey(Keys.D0, () => RegisterWindow(10));
             _hotkeyManager.StartListening();
         }
 
@@ -266,7 +286,7 @@ namespace GameAutomation.UI
         {
             _windowListBox.Items.Clear();
             
-            for (int i = 1; i <= 3; i++)
+            for (int i = 1; i <= 10; i++)
             {
                 if (_registeredWindows.TryGetValue(i, out var window))
                 {
@@ -292,6 +312,56 @@ namespace GameAutomation.UI
         {
             var timestamp = DateTime.Now.ToString("HH:mm:ss");
             _statusLabel.Text = $"[{timestamp}] Status: {message}";
+        }
+
+        private void BroadcastModeCheckBox_CheckedChanged(object? sender, EventArgs e)
+        {
+            _broadcastMode = _broadcastModeCheckBox.Checked;
+            UpdateStatus($"Broadcast mode {(_broadcastMode ? "enabled" : "disabled")}. {(_broadcastMode ? "Press 1-9 to broadcast keys." : "Press Ctrl+Shift+1-9/0 to register windows.")}");
+        }
+
+        private void HandleKeyPress(int keyNumber)
+        {
+            if (_broadcastMode)
+            {
+                // Broadcast the key to all windows
+                BroadcastKeyToAllWindows(keyNumber);
+            }
+            else
+            {
+                // Register window to slot
+                RegisterWindow(keyNumber);
+            }
+        }
+
+        private void BroadcastKeyToAllWindows(int keyNumber)
+        {
+            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+            if (windows.Count == 0)
+            {
+                UpdateStatus("No active windows to broadcast to.");
+                return;
+            }
+
+            var method = _inputSimulator.CurrentMethod;
+            VirtualKeyCode keyCode = keyNumber switch
+            {
+                1 => VirtualKeyCode.VK_1,
+                2 => VirtualKeyCode.VK_2,
+                3 => VirtualKeyCode.VK_3,
+                4 => VirtualKeyCode.VK_4,
+                5 => VirtualKeyCode.VK_5,
+                6 => VirtualKeyCode.VK_6,
+                7 => VirtualKeyCode.VK_7,
+                8 => VirtualKeyCode.VK_8,
+                9 => VirtualKeyCode.VK_9,
+                _ => VirtualKeyCode.VK_1
+            };
+
+            _inputSimulator.BroadcastToAll(windows, hwnd => 
+                _inputSimulator.SendKeyPress(hwnd, keyCode, method));
+            
+            UpdateStatus($"Broadcasted key {keyNumber} to {windows.Count} windows using {method} method.");
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
