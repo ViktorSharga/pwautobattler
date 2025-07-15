@@ -12,6 +12,7 @@ namespace GameAutomation.UI
         private readonly WindowManager _windowManager;
         private readonly InputSimulator _inputSimulator;
         private readonly LowLevelInputSimulator _lowLevelInputSimulator;
+        private readonly BackgroundInputSimulator _backgroundInputSimulator;
         private readonly HotkeyManager _hotkeyManager;
         private readonly Dictionary<int, GameWindow> _registeredWindows;
 
@@ -34,24 +35,33 @@ namespace GameAutomation.UI
         private Button _stopRealTimeButton = null!;
         private CheckBox _enableLowLevelCheckBox = null!;
         private Label _lowLevelStatusLabel = null!;
+        
+        // Background input controls
+        private GroupBox _backgroundGroupBox = null!;
+        private CheckBox _enableBackgroundCheckBox = null!;
+        private Button _startBackgroundButton = null!;
+        private Button _stopBackgroundButton = null!;
+        private Label _backgroundStatusLabel = null!;
 
         public MainForm()
         {
             _windowManager = new WindowManager();
             _inputSimulator = new InputSimulator();
             _lowLevelInputSimulator = new LowLevelInputSimulator();
+            _backgroundInputSimulator = new BackgroundInputSimulator();
             _hotkeyManager = new HotkeyManager();
             _registeredWindows = new Dictionary<int, GameWindow>();
 
             InitializeComponent();
             SetupHotkeys();
             SetupLowLevelSimulator();
+            SetupBackgroundSimulator();
         }
 
         private void InitializeComponent()
         {
-            Text = "Game Multi-Window Controller - Low Level Edition";
-            Size = new System.Drawing.Size(600, 650);
+            Text = "Game Multi-Window Controller - Advanced Edition";
+            Size = new System.Drawing.Size(600, 750);
             StartPosition = FormStartPosition.CenterScreen;
 
             // Window list
@@ -214,11 +224,62 @@ namespace GameAutomation.UI
             _lowLevelGroupBox.Controls.Add(_stopRealTimeButton);
             _lowLevelGroupBox.Controls.Add(_lowLevelStatusLabel);
 
+            // Background input controls group
+            _backgroundGroupBox = new GroupBox
+            {
+                Text = "True Background Input Simulation (No Focus Switch)",
+                Location = new System.Drawing.Point(10, 450),
+                Size = new System.Drawing.Size(560, 100),
+                ForeColor = System.Drawing.Color.DarkGreen
+            };
+
+            _enableBackgroundCheckBox = new CheckBox
+            {
+                Text = "Enable Background Mode (UiPath-style no focus switching)",
+                Location = new System.Drawing.Point(10, 20),
+                Size = new System.Drawing.Size(400, 20),
+                ForeColor = System.Drawing.Color.DarkGreen
+            };
+            _enableBackgroundCheckBox.CheckedChanged += EnableBackgroundCheckBox_CheckedChanged;
+
+            _startBackgroundButton = new Button
+            {
+                Text = "Start Background Broadcasting",
+                Location = new System.Drawing.Point(10, 50),
+                Size = new System.Drawing.Size(150, 30),
+                Enabled = false,
+                BackColor = System.Drawing.Color.LightGreen
+            };
+            _startBackgroundButton.Click += StartBackgroundButton_Click;
+
+            _stopBackgroundButton = new Button
+            {
+                Text = "Stop Background Broadcasting",
+                Location = new System.Drawing.Point(170, 50),
+                Size = new System.Drawing.Size(150, 30),
+                Enabled = false,
+                BackColor = System.Drawing.Color.LightCoral
+            };
+            _stopBackgroundButton.Click += StopBackgroundButton_Click;
+
+            _backgroundStatusLabel = new Label
+            {
+                Text = "Background mode disabled",
+                Location = new System.Drawing.Point(330, 55),
+                Size = new System.Drawing.Size(220, 20),
+                ForeColor = System.Drawing.Color.Gray
+            };
+
+            _backgroundGroupBox.Controls.Add(_enableBackgroundCheckBox);
+            _backgroundGroupBox.Controls.Add(_startBackgroundButton);
+            _backgroundGroupBox.Controls.Add(_stopBackgroundButton);
+            _backgroundGroupBox.Controls.Add(_backgroundStatusLabel);
+
             // Status
             _statusLabel = new Label
             {
                 Text = "Status: Ready. Use Ctrl+Shift+1/2/3 to register windows.",
-                Location = new System.Drawing.Point(10, 450),
+                Location = new System.Drawing.Point(10, 560),
                 Size = new System.Drawing.Size(560, 80),
                 BorderStyle = BorderStyle.Fixed3D
             };
@@ -226,9 +287,9 @@ namespace GameAutomation.UI
             // Instructions
             var instructionsLabel = new Label
             {
-                Text = "Low-Level Mode: Captures your actual WASD key presses and broadcasts them to all registered windows in real-time.\nWarning: This mode requires careful handling and may interfere with normal keyboard usage.",
-                Location = new System.Drawing.Point(10, 540),
-                Size = new System.Drawing.Size(560, 40),
+                Text = "Background Mode: Uses UiPath-style techniques to send input without focus switching.\nMultiple fallback methods: WM_CHAR, child window targeting, game control detection.\nRecommended for smooth multi-window control.",
+                Location = new System.Drawing.Point(10, 650),
+                Size = new System.Drawing.Size(560, 60),
                 ForeColor = System.Drawing.Color.DarkBlue
             };
 
@@ -245,6 +306,7 @@ namespace GameAutomation.UI
             Controls.Add(_startMovementButton);
             Controls.Add(_stopMovementButton);
             Controls.Add(_lowLevelGroupBox);
+            Controls.Add(_backgroundGroupBox);
             Controls.Add(_statusLabel);
             Controls.Add(instructionsLabel);
         }
@@ -265,6 +327,18 @@ namespace GameAutomation.UI
                 {
                     _lowLevelStatusLabel.Text = message;
                     UpdateStatus($"Low-level: {message}");
+                }));
+            };
+        }
+
+        private void SetupBackgroundSimulator()
+        {
+            _backgroundInputSimulator.OnStatusUpdate += (message) =>
+            {
+                Invoke(new Action(() =>
+                {
+                    _backgroundStatusLabel.Text = message;
+                    UpdateStatus($"Background: {message}");
                 }));
             };
         }
@@ -329,6 +403,45 @@ namespace GameAutomation.UI
             UpdateStatus("Real-time broadcasting stopped.");
         }
 
+        private void EnableBackgroundCheckBox_CheckedChanged(object? sender, EventArgs e)
+        {
+            bool enabled = _enableBackgroundCheckBox.Checked;
+            
+            _startBackgroundButton.Enabled = enabled;
+            _stopBackgroundButton.Enabled = enabled;
+
+            if (enabled)
+            {
+                _backgroundStatusLabel.Text = "Background mode enabled - ready to start";
+                _backgroundStatusLabel.ForeColor = System.Drawing.Color.DarkGreen;
+                UpdateStatus("Background mode enabled. Click 'Start Background Broadcasting' to begin.");
+            }
+            else
+            {
+                _backgroundInputSimulator.StopRealTimeBroadcast();
+                _backgroundStatusLabel.Text = "Background mode disabled";
+                _backgroundStatusLabel.ForeColor = System.Drawing.Color.Gray;
+                UpdateStatus("Background mode disabled.");
+            }
+        }
+
+        private void StartBackgroundButton_Click(object? sender, EventArgs e)
+        {
+            _backgroundInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
+            _backgroundInputSimulator.StartRealTimeBroadcast();
+            _startBackgroundButton.Enabled = false;
+            _stopBackgroundButton.Enabled = true;
+            UpdateStatus("Background broadcasting active! No focus switching.");
+        }
+
+        private void StopBackgroundButton_Click(object? sender, EventArgs e)
+        {
+            _backgroundInputSimulator.StopRealTimeBroadcast();
+            _startBackgroundButton.Enabled = true;
+            _stopBackgroundButton.Enabled = false;
+            UpdateStatus("Background broadcasting stopped.");
+        }
+
         private void RegisterWindow(int slot)
         {
             var activeWindow = _windowManager.GetActiveWindow();
@@ -343,6 +456,12 @@ namespace GameAutomation.UI
                 if (_enableLowLevelCheckBox.Checked)
                 {
                     _lowLevelInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
+                }
+                
+                // Update background simulator if active
+                if (_enableBackgroundCheckBox.Checked)
+                {
+                    _backgroundInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
                 }
             }
             else
@@ -390,7 +509,12 @@ namespace GameAutomation.UI
 
         private void SendQButton_Click(object? sender, EventArgs e)
         {
-            if (_enableLowLevelCheckBox.Checked)
+            if (_enableBackgroundCheckBox.Checked)
+            {
+                _backgroundInputSimulator.SendBackgroundKeyPress(VirtualKeyCode.VK_Q);
+                UpdateStatus("Sent Q key using background method (no focus switch).");
+            }
+            else if (_enableLowLevelCheckBox.Checked)
             {
                 _lowLevelInputSimulator.BroadcastSingleKey(LowLevelInputSimulator.VirtualKeyCode.VK_Q);
                 UpdateStatus("Sent Q key using low-level method.");
@@ -409,7 +533,12 @@ namespace GameAutomation.UI
 
         private void Send1Button_Click(object? sender, EventArgs e)
         {
-            if (_enableLowLevelCheckBox.Checked)
+            if (_enableBackgroundCheckBox.Checked)
+            {
+                _backgroundInputSimulator.SendBackgroundKeyPress(VirtualKeyCode.VK_1);
+                UpdateStatus("Sent 1 key using background method (no focus switch).");
+            }
+            else if (_enableLowLevelCheckBox.Checked)
             {
                 _lowLevelInputSimulator.BroadcastSingleKey(LowLevelInputSimulator.VirtualKeyCode.VK_1);
                 UpdateStatus("Sent 1 key using low-level method.");
@@ -428,16 +557,32 @@ namespace GameAutomation.UI
 
         private void StartMovementButton_Click(object? sender, EventArgs e)
         {
-            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
-            _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyDown(hwnd, VirtualKeyCode.VK_W));
-            UpdateStatus($"Started movement (W key down) for {windows.Count} windows.");
+            if (_enableBackgroundCheckBox.Checked)
+            {
+                _backgroundInputSimulator.SendBackgroundKeyDown(VirtualKeyCode.VK_W);
+                UpdateStatus("Started movement using background method (no focus switch).");
+            }
+            else
+            {
+                var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+                _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyDown(hwnd, VirtualKeyCode.VK_W));
+                UpdateStatus($"Started movement (W key down) for {windows.Count} windows.");
+            }
         }
 
         private void StopMovementButton_Click(object? sender, EventArgs e)
         {
-            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
-            _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyUp(hwnd, VirtualKeyCode.VK_W));
-            UpdateStatus($"Stopped movement (W key up) for {windows.Count} windows.");
+            if (_enableBackgroundCheckBox.Checked)
+            {
+                _backgroundInputSimulator.SendBackgroundKeyUp(VirtualKeyCode.VK_W);
+                UpdateStatus("Stopped movement using background method (no focus switch).");
+            }
+            else
+            {
+                var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+                _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyUp(hwnd, VirtualKeyCode.VK_W));
+                UpdateStatus($"Stopped movement (W key up) for {windows.Count} windows.");
+            }
         }
 
         private void UpdateWindowList()
@@ -475,6 +620,7 @@ namespace GameAutomation.UI
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             _lowLevelInputSimulator?.Dispose();
+            _backgroundInputSimulator?.Dispose();
             _hotkeyManager?.Dispose();
             base.OnFormClosed(e);
         }
