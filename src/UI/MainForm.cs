@@ -11,9 +11,6 @@ namespace GameAutomation.UI
     {
         private readonly WindowManager _windowManager;
         private readonly InputSimulator _inputSimulator;
-        private readonly LowLevelInputSimulator _lowLevelInputSimulator;
-        private readonly EnhancedBackgroundInputSimulator _backgroundInputSimulator;
-        private readonly HardwareInputSimulator _hardwareInputSimulator;
         private readonly HotkeyManager _hotkeyManager;
         private readonly Dictionary<int, GameWindow> _registeredWindows;
 
@@ -27,52 +24,24 @@ namespace GameAutomation.UI
         private ComboBox _methodComboBox = null!;
         private Button _testAllMethodsButton = null!;
         private Label _methodLabel = null!;
-        
-        // Low-level controls
-        private GroupBox _lowLevelGroupBox = null!;
-        private Button _startHookButton = null!;
-        private Button _stopHookButton = null!;
-        private Button _startRealTimeButton = null!;
-        private Button _stopRealTimeButton = null!;
-        private CheckBox _enableLowLevelCheckBox = null!;
-        private Label _lowLevelStatusLabel = null!;
-        
-        // Background input controls
-        private GroupBox _backgroundGroupBox = null!;
-        private CheckBox _enableBackgroundCheckBox = null!;
-        private Button _startBackgroundButton = null!;
-        private Button _stopBackgroundButton = null!;
-        private Label _backgroundStatusLabel = null!;
-        
-        // Hardware input controls
-        private GroupBox _hardwareGroupBox = null!;
-        private CheckBox _enableHardwareCheckBox = null!;
-        private Button _startHardwareButton = null!;
-        private Button _stopHardwareButton = null!;
-        private Label _hardwareStatusLabel = null!;
-        private TextBox _hardwareInfoTextBox = null!;
+        private CheckBox _broadcastModeCheckBox = null!;
+        private bool _broadcastMode = false;
 
         public MainForm()
         {
             _windowManager = new WindowManager();
             _inputSimulator = new InputSimulator();
-            _lowLevelInputSimulator = new LowLevelInputSimulator();
-            _backgroundInputSimulator = new EnhancedBackgroundInputSimulator();
-            _hardwareInputSimulator = new HardwareInputSimulator();
             _hotkeyManager = new HotkeyManager();
             _registeredWindows = new Dictionary<int, GameWindow>();
 
             InitializeComponent();
             SetupHotkeys();
-            SetupLowLevelSimulator();
-            SetupBackgroundSimulator();
-            SetupHardwareSimulator();
         }
 
         private void InitializeComponent()
         {
-            Text = "Game Multi-Window Controller - Hardware Edition";
-            Size = new System.Drawing.Size(600, 900);
+            Text = "Game Multi-Window Controller";
+            Size = new System.Drawing.Size(550, 500);
             StartPosition = FormStartPosition.CenterScreen;
 
             // Window list
@@ -86,7 +55,7 @@ namespace GameAutomation.UI
             _windowListBox = new ListBox
             {
                 Location = new System.Drawing.Point(10, 35),
-                Size = new System.Drawing.Size(560, 100)
+                Size = new System.Drawing.Size(510, 100)
             };
 
             _refreshButton = new Button
@@ -112,7 +81,7 @@ namespace GameAutomation.UI
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             _methodComboBox.Items.AddRange(Enum.GetNames(typeof(InputMethod)));
-            _methodComboBox.SelectedItem = "KeyboardEventOptimized";
+            _methodComboBox.SelectedItem = "KeyboardEventOptimized"; // Set optimized as default
             _methodComboBox.SelectedIndexChanged += MethodComboBox_SelectedIndexChanged;
 
             _testAllMethodsButton = new Button
@@ -124,10 +93,20 @@ namespace GameAutomation.UI
             };
             _testAllMethodsButton.Click += TestAllMethodsButton_Click;
 
+            // Broadcast mode
+            _broadcastModeCheckBox = new CheckBox
+            {
+                Text = "Broadcast Mode (Listen 1-9)",
+                Location = new System.Drawing.Point(340, 182),
+                Size = new System.Drawing.Size(150, 25),
+                Font = new System.Drawing.Font("Microsoft Sans Serif", 8F)
+            };
+            _broadcastModeCheckBox.CheckedChanged += BroadcastModeCheckBox_CheckedChanged;
+
             // Test controls
             var testLabel = new Label
             {
-                Text = "Standard Test Controls:",
+                Text = "Test Controls:",
                 Location = new System.Drawing.Point(10, 215),
                 Size = new System.Drawing.Size(200, 20)
             };
@@ -164,206 +143,22 @@ namespace GameAutomation.UI
             };
             _stopMovementButton.Click += StopMovementButton_Click;
 
-            // Low-level controls group
-            _lowLevelGroupBox = new GroupBox
-            {
-                Text = "Low-Level Input Simulation",
-                Location = new System.Drawing.Point(10, 320),
-                Size = new System.Drawing.Size(560, 120),
-                ForeColor = System.Drawing.Color.DarkRed
-            };
-
-            _enableLowLevelCheckBox = new CheckBox
-            {
-                Text = "Enable Low-Level Mode (Real-time WASD broadcasting)",
-                Location = new System.Drawing.Point(10, 20),
-                Size = new System.Drawing.Size(350, 20),
-                ForeColor = System.Drawing.Color.DarkRed
-            };
-            _enableLowLevelCheckBox.CheckedChanged += EnableLowLevelCheckBox_CheckedChanged;
-
-            _startHookButton = new Button
-            {
-                Text = "Start Keyboard Hook",
-                Location = new System.Drawing.Point(10, 50),
-                Size = new System.Drawing.Size(120, 30),
-                Enabled = false
-            };
-            _startHookButton.Click += StartHookButton_Click;
-
-            _stopHookButton = new Button
-            {
-                Text = "Stop Keyboard Hook",
-                Location = new System.Drawing.Point(140, 50),
-                Size = new System.Drawing.Size(120, 30),
-                Enabled = false
-            };
-            _stopHookButton.Click += StopHookButton_Click;
-
-            _startRealTimeButton = new Button
-            {
-                Text = "Start Real-Time",
-                Location = new System.Drawing.Point(270, 50),
-                Size = new System.Drawing.Size(100, 30),
-                Enabled = false,
-                BackColor = System.Drawing.Color.LightGreen
-            };
-            _startRealTimeButton.Click += StartRealTimeButton_Click;
-
-            _stopRealTimeButton = new Button
-            {
-                Text = "Stop Real-Time",
-                Location = new System.Drawing.Point(380, 50),
-                Size = new System.Drawing.Size(100, 30),
-                Enabled = false,
-                BackColor = System.Drawing.Color.LightCoral
-            };
-            _stopRealTimeButton.Click += StopRealTimeButton_Click;
-
-            _lowLevelStatusLabel = new Label
-            {
-                Text = "Low-level mode disabled",
-                Location = new System.Drawing.Point(10, 85),
-                Size = new System.Drawing.Size(540, 20),
-                ForeColor = System.Drawing.Color.Gray
-            };
-
-            _lowLevelGroupBox.Controls.Add(_enableLowLevelCheckBox);
-            _lowLevelGroupBox.Controls.Add(_startHookButton);
-            _lowLevelGroupBox.Controls.Add(_stopHookButton);
-            _lowLevelGroupBox.Controls.Add(_startRealTimeButton);
-            _lowLevelGroupBox.Controls.Add(_stopRealTimeButton);
-            _lowLevelGroupBox.Controls.Add(_lowLevelStatusLabel);
-
-            // Background input controls group
-            _backgroundGroupBox = new GroupBox
-            {
-                Text = "Enhanced Background Input Simulation (No Focus Switch)",
-                Location = new System.Drawing.Point(10, 450),
-                Size = new System.Drawing.Size(560, 100),
-                ForeColor = System.Drawing.Color.DarkGreen
-            };
-
-            _enableBackgroundCheckBox = new CheckBox
-            {
-                Text = "Enable Enhanced Background Mode (DirectInput/RawInput detection)",
-                Location = new System.Drawing.Point(10, 20),
-                Size = new System.Drawing.Size(400, 20),
-                ForeColor = System.Drawing.Color.DarkGreen
-            };
-            _enableBackgroundCheckBox.CheckedChanged += EnableBackgroundCheckBox_CheckedChanged;
-
-            _startBackgroundButton = new Button
-            {
-                Text = "Start Enhanced Broadcasting",
-                Location = new System.Drawing.Point(10, 50),
-                Size = new System.Drawing.Size(150, 30),
-                Enabled = false,
-                BackColor = System.Drawing.Color.LightGreen
-            };
-            _startBackgroundButton.Click += StartBackgroundButton_Click;
-
-            _stopBackgroundButton = new Button
-            {
-                Text = "Stop Enhanced Broadcasting",
-                Location = new System.Drawing.Point(170, 50),
-                Size = new System.Drawing.Size(150, 30),
-                Enabled = false,
-                BackColor = System.Drawing.Color.LightCoral
-            };
-            _stopBackgroundButton.Click += StopBackgroundButton_Click;
-
-            _backgroundStatusLabel = new Label
-            {
-                Text = "Enhanced mode disabled",
-                Location = new System.Drawing.Point(330, 55),
-                Size = new System.Drawing.Size(220, 20),
-                ForeColor = System.Drawing.Color.Gray
-            };
-
-            _backgroundGroupBox.Controls.Add(_enableBackgroundCheckBox);
-            _backgroundGroupBox.Controls.Add(_startBackgroundButton);
-            _backgroundGroupBox.Controls.Add(_stopBackgroundButton);
-            _backgroundGroupBox.Controls.Add(_backgroundStatusLabel);
-
-            // Hardware input controls group
-            _hardwareGroupBox = new GroupBox
-            {
-                Text = "Hardware Input Simulation (Real Hardware ID Spoofing)",
-                Location = new System.Drawing.Point(10, 560),
-                Size = new System.Drawing.Size(560, 180),
-                ForeColor = System.Drawing.Color.DarkMagenta
-            };
-
-            _enableHardwareCheckBox = new CheckBox
-            {
-                Text = "Enable Hardware Mode (Real peripheral device simulation)",
-                Location = new System.Drawing.Point(10, 20),
-                Size = new System.Drawing.Size(400, 20),
-                ForeColor = System.Drawing.Color.DarkMagenta
-            };
-            _enableHardwareCheckBox.CheckedChanged += EnableHardwareCheckBox_CheckedChanged;
-
-            _startHardwareButton = new Button
-            {
-                Text = "Start Hardware Simulation",
-                Location = new System.Drawing.Point(10, 50),
-                Size = new System.Drawing.Size(150, 30),
-                Enabled = false,
-                BackColor = System.Drawing.Color.LightGreen
-            };
-            _startHardwareButton.Click += StartHardwareButton_Click;
-
-            _stopHardwareButton = new Button
-            {
-                Text = "Stop Hardware Simulation",
-                Location = new System.Drawing.Point(170, 50),
-                Size = new System.Drawing.Size(150, 30),
-                Enabled = false,
-                BackColor = System.Drawing.Color.LightCoral
-            };
-            _stopHardwareButton.Click += StopHardwareButton_Click;
-
-            _hardwareStatusLabel = new Label
-            {
-                Text = "Hardware mode disabled",
-                Location = new System.Drawing.Point(330, 55),
-                Size = new System.Drawing.Size(220, 20),
-                ForeColor = System.Drawing.Color.Gray
-            };
-
-            _hardwareInfoTextBox = new TextBox
-            {
-                Location = new System.Drawing.Point(10, 90),
-                Size = new System.Drawing.Size(540, 80),
-                Multiline = true,
-                ReadOnly = true,
-                ScrollBars = ScrollBars.Vertical,
-                Text = "Hardware devices will be listed here..."
-            };
-
-            _hardwareGroupBox.Controls.Add(_enableHardwareCheckBox);
-            _hardwareGroupBox.Controls.Add(_startHardwareButton);
-            _hardwareGroupBox.Controls.Add(_stopHardwareButton);
-            _hardwareGroupBox.Controls.Add(_hardwareStatusLabel);
-            _hardwareGroupBox.Controls.Add(_hardwareInfoTextBox);
-
             // Status
             _statusLabel = new Label
             {
-                Text = "Status: Ready. Use Ctrl+Shift+1/2/3 to register windows.",
-                Location = new System.Drawing.Point(10, 750),
-                Size = new System.Drawing.Size(560, 60),
+                Text = "Status: Ready. Use Ctrl+Shift+1-9/0 to register windows.",
+                Location = new System.Drawing.Point(10, 330),
+                Size = new System.Drawing.Size(510, 100),
                 BorderStyle = BorderStyle.Fixed3D
             };
 
             // Instructions
             var instructionsLabel = new Label
             {
-                Text = "Hardware Mode: Enumerates real hardware devices and simulates genuine hardware input.\nUses actual device VID/PID and hardware scan codes for maximum authenticity.\nRecommended for games with advanced anti-cheat or input validation.",
-                Location = new System.Drawing.Point(10, 820),
-                Size = new System.Drawing.Size(560, 60),
-                ForeColor = System.Drawing.Color.DarkBlue
+                Text = "Note: KeyboardEventOptimized is recommended for most games.\nIt minimizes window flickering and supports proper movement.",
+                Location = new System.Drawing.Point(10, 440),
+                Size = new System.Drawing.Size(510, 40),
+                ForeColor = System.Drawing.Color.DarkGreen
             };
 
             // Add controls to form
@@ -373,201 +168,29 @@ namespace GameAutomation.UI
             Controls.Add(_methodLabel);
             Controls.Add(_methodComboBox);
             Controls.Add(_testAllMethodsButton);
+            Controls.Add(_broadcastModeCheckBox);
             Controls.Add(testLabel);
             Controls.Add(_sendQButton);
             Controls.Add(_send1Button);
             Controls.Add(_startMovementButton);
             Controls.Add(_stopMovementButton);
-            Controls.Add(_lowLevelGroupBox);
-            Controls.Add(_backgroundGroupBox);
-            Controls.Add(_hardwareGroupBox);
             Controls.Add(_statusLabel);
             Controls.Add(instructionsLabel);
         }
 
         private void SetupHotkeys()
         {
-            _hotkeyManager.RegisterHotkey(Keys.D1, () => RegisterWindow(1));
-            _hotkeyManager.RegisterHotkey(Keys.D2, () => RegisterWindow(2));
-            _hotkeyManager.RegisterHotkey(Keys.D3, () => RegisterWindow(3));
+            _hotkeyManager.RegisterHotkey(Keys.D1, () => HandleKeyPress(1));
+            _hotkeyManager.RegisterHotkey(Keys.D2, () => HandleKeyPress(2));
+            _hotkeyManager.RegisterHotkey(Keys.D3, () => HandleKeyPress(3));
+            _hotkeyManager.RegisterHotkey(Keys.D4, () => HandleKeyPress(4));
+            _hotkeyManager.RegisterHotkey(Keys.D5, () => HandleKeyPress(5));
+            _hotkeyManager.RegisterHotkey(Keys.D6, () => HandleKeyPress(6));
+            _hotkeyManager.RegisterHotkey(Keys.D7, () => HandleKeyPress(7));
+            _hotkeyManager.RegisterHotkey(Keys.D8, () => HandleKeyPress(8));
+            _hotkeyManager.RegisterHotkey(Keys.D9, () => HandleKeyPress(9));
+            _hotkeyManager.RegisterHotkey(Keys.D0, () => RegisterWindow(10));
             _hotkeyManager.StartListening();
-        }
-
-        private void SetupLowLevelSimulator()
-        {
-            _lowLevelInputSimulator.OnStatusUpdate += (message) =>
-            {
-                Invoke(new Action(() =>
-                {
-                    _lowLevelStatusLabel.Text = message;
-                    UpdateStatus($"Low-level: {message}");
-                }));
-            };
-        }
-
-        private void SetupBackgroundSimulator()
-        {
-            _backgroundInputSimulator.OnStatusUpdate += (message) =>
-            {
-                Invoke(new Action(() =>
-                {
-                    _backgroundStatusLabel.Text = message;
-                    UpdateStatus($"Enhanced: {message}");
-                }));
-            };
-        }
-
-        private void SetupHardwareSimulator()
-        {
-            _hardwareInputSimulator.OnStatusUpdate += (message) =>
-            {
-                Invoke(new Action(() =>
-                {
-                    _hardwareStatusLabel.Text = message;
-                    UpdateStatus($"Hardware: {message}");
-                }));
-            };
-            
-            // Display hardware info
-            _hardwareInfoTextBox.Text = _hardwareInputSimulator.GetHardwareInfo();
-        }
-
-        private void EnableLowLevelCheckBox_CheckedChanged(object? sender, EventArgs e)
-        {
-            bool enabled = _enableLowLevelCheckBox.Checked;
-            
-            _startHookButton.Enabled = enabled;
-            _stopHookButton.Enabled = enabled;
-            _startRealTimeButton.Enabled = enabled;
-            _stopRealTimeButton.Enabled = enabled;
-
-            if (enabled)
-            {
-                _lowLevelStatusLabel.Text = "Low-level mode enabled - ready to start";
-                _lowLevelStatusLabel.ForeColor = System.Drawing.Color.DarkGreen;
-                UpdateStatus("Low-level mode enabled. Click 'Start Keyboard Hook' to begin.");
-            }
-            else
-            {
-                _lowLevelInputSimulator.StopRealTimeBroadcast();
-                _lowLevelInputSimulator.StopKeyboardHook();
-                _lowLevelStatusLabel.Text = "Low-level mode disabled";
-                _lowLevelStatusLabel.ForeColor = System.Drawing.Color.Gray;
-                UpdateStatus("Low-level mode disabled.");
-            }
-        }
-
-        private void StartHookButton_Click(object? sender, EventArgs e)
-        {
-            _lowLevelInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
-            _lowLevelInputSimulator.StartKeyboardHook();
-            _startHookButton.Enabled = false;
-            _stopHookButton.Enabled = true;
-        }
-
-        private void StopHookButton_Click(object? sender, EventArgs e)
-        {
-            _lowLevelInputSimulator.StopKeyboardHook();
-            _lowLevelInputSimulator.StopRealTimeBroadcast();
-            _startHookButton.Enabled = true;
-            _stopHookButton.Enabled = false;
-            _startRealTimeButton.Enabled = true;
-            _stopRealTimeButton.Enabled = false;
-        }
-
-        private void StartRealTimeButton_Click(object? sender, EventArgs e)
-        {
-            _lowLevelInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
-            _lowLevelInputSimulator.StartRealTimeBroadcast();
-            _startRealTimeButton.Enabled = false;
-            _stopRealTimeButton.Enabled = true;
-            UpdateStatus("Real-time broadcasting active! Press WASD to move in all windows.");
-        }
-
-        private void StopRealTimeButton_Click(object? sender, EventArgs e)
-        {
-            _lowLevelInputSimulator.StopRealTimeBroadcast();
-            _startRealTimeButton.Enabled = true;
-            _stopRealTimeButton.Enabled = false;
-            UpdateStatus("Real-time broadcasting stopped.");
-        }
-
-        private void EnableBackgroundCheckBox_CheckedChanged(object? sender, EventArgs e)
-        {
-            bool enabled = _enableBackgroundCheckBox.Checked;
-            
-            _startBackgroundButton.Enabled = enabled;
-            _stopBackgroundButton.Enabled = enabled;
-
-            if (enabled)
-            {
-                _backgroundStatusLabel.Text = "Enhanced mode enabled - ready to start";
-                _backgroundStatusLabel.ForeColor = System.Drawing.Color.DarkGreen;
-                UpdateStatus("Enhanced background mode enabled. Click 'Start Enhanced Broadcasting' to begin.");
-            }
-            else
-            {
-                _backgroundInputSimulator.StopRealTimeBroadcast();
-                _backgroundStatusLabel.Text = "Enhanced mode disabled";
-                _backgroundStatusLabel.ForeColor = System.Drawing.Color.Gray;
-                UpdateStatus("Enhanced background mode disabled.");
-            }
-        }
-
-        private void StartBackgroundButton_Click(object? sender, EventArgs e)
-        {
-            _backgroundInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
-            _backgroundInputSimulator.StartRealTimeBroadcast();
-            _startBackgroundButton.Enabled = false;
-            _stopBackgroundButton.Enabled = true;
-            UpdateStatus("Enhanced background broadcasting active! Game type analysis in progress.");
-        }
-
-        private void StopBackgroundButton_Click(object? sender, EventArgs e)
-        {
-            _backgroundInputSimulator.StopRealTimeBroadcast();
-            _startBackgroundButton.Enabled = true;
-            _stopBackgroundButton.Enabled = false;
-            UpdateStatus("Enhanced background broadcasting stopped.");
-        }
-
-        private void EnableHardwareCheckBox_CheckedChanged(object? sender, EventArgs e)
-        {
-            bool enabled = _enableHardwareCheckBox.Checked;
-            
-            _startHardwareButton.Enabled = enabled;
-            _stopHardwareButton.Enabled = enabled;
-
-            if (enabled)
-            {
-                _hardwareStatusLabel.Text = "Hardware mode enabled - ready to start";
-                _hardwareStatusLabel.ForeColor = System.Drawing.Color.DarkGreen;
-                UpdateStatus("Hardware mode enabled. Click 'Start Hardware Simulation' to begin.");
-            }
-            else
-            {
-                _hardwareInputSimulator.StopRealTimeBroadcast();
-                _hardwareStatusLabel.Text = "Hardware mode disabled";
-                _hardwareStatusLabel.ForeColor = System.Drawing.Color.Gray;
-                UpdateStatus("Hardware mode disabled.");
-            }
-        }
-
-        private void StartHardwareButton_Click(object? sender, EventArgs e)
-        {
-            _hardwareInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
-            _hardwareInputSimulator.StartRealTimeBroadcast();
-            _startHardwareButton.Enabled = false;
-            _stopHardwareButton.Enabled = true;
-            UpdateStatus("Hardware simulation active! Using real device hardware IDs.");
-        }
-
-        private void StopHardwareButton_Click(object? sender, EventArgs e)
-        {
-            _hardwareInputSimulator.StopRealTimeBroadcast();
-            _startHardwareButton.Enabled = true;
-            _stopHardwareButton.Enabled = false;
-            UpdateStatus("Hardware simulation stopped.");
         }
 
         private void RegisterWindow(int slot)
@@ -579,24 +202,6 @@ namespace GameAutomation.UI
                 _registeredWindows[slot] = activeWindow;
                 UpdateWindowList();
                 UpdateStatus($"Window registered to slot {slot}: PID {activeWindow.ProcessId}");
-                
-                // Update low-level simulator if active
-                if (_enableLowLevelCheckBox.Checked)
-                {
-                    _lowLevelInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
-                }
-                
-                // Update background simulator if active
-                if (_enableBackgroundCheckBox.Checked)
-                {
-                    _backgroundInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
-                }
-                
-                // Update hardware simulator if active
-                if (_enableHardwareCheckBox.Checked)
-                {
-                    _hardwareInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
-                }
             }
             else
             {
@@ -643,107 +248,45 @@ namespace GameAutomation.UI
 
         private void SendQButton_Click(object? sender, EventArgs e)
         {
-            if (_enableHardwareCheckBox.Checked)
-            {
-                _hardwareInputSimulator.SendHardwareKeyPress(VirtualKeyCode.VK_Q);
-                UpdateStatus("Sent Q key using hardware simulation (real device VID/PID).");
-            }
-            else if (_enableBackgroundCheckBox.Checked)
-            {
-                _backgroundInputSimulator.SendEnhancedKeyPress(VirtualKeyCode.VK_Q);
-                UpdateStatus("Sent Q key using enhanced background method (no focus switch).");
-            }
-            else if (_enableLowLevelCheckBox.Checked)
-            {
-                _lowLevelInputSimulator.BroadcastSingleKey(LowLevelInputSimulator.VirtualKeyCode.VK_Q);
-                UpdateStatus("Sent Q key using low-level method.");
-            }
-            else
-            {
-                var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
-                var method = _inputSimulator.CurrentMethod;
-                
-                _inputSimulator.BroadcastToAll(windows, hwnd => 
-                    _inputSimulator.SendKeyPress(hwnd, VirtualKeyCode.VK_Q, method));
-                
-                UpdateStatus($"Sent Q key to {windows.Count} windows using {method} method.");
-            }
+            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+            var method = _inputSimulator.CurrentMethod;
+            
+            _inputSimulator.BroadcastToAll(windows, hwnd => 
+                _inputSimulator.SendKeyPress(hwnd, VirtualKeyCode.VK_Q, method));
+            
+            UpdateStatus($"Sent Q key to {windows.Count} windows using {method} method.");
         }
 
         private void Send1Button_Click(object? sender, EventArgs e)
         {
-            if (_enableHardwareCheckBox.Checked)
-            {
-                _hardwareInputSimulator.SendHardwareKeyPress(VirtualKeyCode.VK_1);
-                UpdateStatus("Sent 1 key using hardware simulation (real device VID/PID).");
-            }
-            else if (_enableBackgroundCheckBox.Checked)
-            {
-                _backgroundInputSimulator.SendEnhancedKeyPress(VirtualKeyCode.VK_1);
-                UpdateStatus("Sent 1 key using enhanced background method (no focus switch).");
-            }
-            else if (_enableLowLevelCheckBox.Checked)
-            {
-                _lowLevelInputSimulator.BroadcastSingleKey(LowLevelInputSimulator.VirtualKeyCode.VK_1);
-                UpdateStatus("Sent 1 key using low-level method.");
-            }
-            else
-            {
-                var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
-                var method = _inputSimulator.CurrentMethod;
-                
-                _inputSimulator.BroadcastToAll(windows, hwnd => 
-                    _inputSimulator.SendKeyPress(hwnd, VirtualKeyCode.VK_1, method));
-                
-                UpdateStatus($"Sent 1 key to {windows.Count} windows using {method} method.");
-            }
+            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+            var method = _inputSimulator.CurrentMethod;
+            
+            _inputSimulator.BroadcastToAll(windows, hwnd => 
+                _inputSimulator.SendKeyPress(hwnd, VirtualKeyCode.VK_1, method));
+            
+            UpdateStatus($"Sent 1 key to {windows.Count} windows using {method} method.");
         }
 
         private void StartMovementButton_Click(object? sender, EventArgs e)
         {
-            if (_enableHardwareCheckBox.Checked)
-            {
-                _hardwareInputSimulator.SendHardwareKeyDown(VirtualKeyCode.VK_W);
-                UpdateStatus("Started movement using hardware simulation (real device VID/PID).");
-            }
-            else if (_enableBackgroundCheckBox.Checked)
-            {
-                _backgroundInputSimulator.SendEnhancedKeyDown(VirtualKeyCode.VK_W);
-                UpdateStatus("Started movement using enhanced background method (no focus switch).");
-            }
-            else
-            {
-                var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
-                _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyDown(hwnd, VirtualKeyCode.VK_W));
-                UpdateStatus($"Started movement (W key down) for {windows.Count} windows.");
-            }
+            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+            _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyDown(hwnd, VirtualKeyCode.VK_W));
+            UpdateStatus($"Started movement (W key down) for {windows.Count} windows.");
         }
 
         private void StopMovementButton_Click(object? sender, EventArgs e)
         {
-            if (_enableHardwareCheckBox.Checked)
-            {
-                _hardwareInputSimulator.SendHardwareKeyUp(VirtualKeyCode.VK_W);
-                UpdateStatus("Stopped movement using hardware simulation (real device VID/PID).");
-            }
-            else if (_enableBackgroundCheckBox.Checked)
-            {
-                _backgroundInputSimulator.SendEnhancedKeyUp(VirtualKeyCode.VK_W);
-                UpdateStatus("Stopped movement using enhanced background method (no focus switch).");
-            }
-            else
-            {
-                var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
-                _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyUp(hwnd, VirtualKeyCode.VK_W));
-                UpdateStatus($"Stopped movement (W key up) for {windows.Count} windows.");
-            }
+            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+            _inputSimulator.BroadcastToAll(windows, hwnd => _inputSimulator.SendKeyUp(hwnd, VirtualKeyCode.VK_W));
+            UpdateStatus($"Stopped movement (W key up) for {windows.Count} windows.");
         }
 
         private void UpdateWindowList()
         {
             _windowListBox.Items.Clear();
             
-            for (int i = 1; i <= 3; i++)
+            for (int i = 1; i <= 10; i++)
             {
                 if (_registeredWindows.TryGetValue(i, out var window))
                 {
@@ -771,11 +314,58 @@ namespace GameAutomation.UI
             _statusLabel.Text = $"[{timestamp}] Status: {message}";
         }
 
+        private void BroadcastModeCheckBox_CheckedChanged(object? sender, EventArgs e)
+        {
+            _broadcastMode = _broadcastModeCheckBox.Checked;
+            UpdateStatus($"Broadcast mode {(_broadcastMode ? "enabled" : "disabled")}. {(_broadcastMode ? "Press 1-9 to broadcast keys." : "Press Ctrl+Shift+1-9/0 to register windows.")}");
+        }
+
+        private void HandleKeyPress(int keyNumber)
+        {
+            if (_broadcastMode)
+            {
+                // Broadcast the key to all windows
+                BroadcastKeyToAllWindows(keyNumber);
+            }
+            else
+            {
+                // Register window to slot
+                RegisterWindow(keyNumber);
+            }
+        }
+
+        private void BroadcastKeyToAllWindows(int keyNumber)
+        {
+            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+            if (windows.Count == 0)
+            {
+                UpdateStatus("No active windows to broadcast to.");
+                return;
+            }
+
+            var method = _inputSimulator.CurrentMethod;
+            VirtualKeyCode keyCode = keyNumber switch
+            {
+                1 => VirtualKeyCode.VK_1,
+                2 => VirtualKeyCode.VK_2,
+                3 => VirtualKeyCode.VK_3,
+                4 => VirtualKeyCode.VK_4,
+                5 => VirtualKeyCode.VK_5,
+                6 => VirtualKeyCode.VK_6,
+                7 => VirtualKeyCode.VK_7,
+                8 => VirtualKeyCode.VK_8,
+                9 => VirtualKeyCode.VK_9,
+                _ => VirtualKeyCode.VK_1
+            };
+
+            _inputSimulator.BroadcastToAll(windows, hwnd => 
+                _inputSimulator.SendKeyPress(hwnd, keyCode, method));
+            
+            UpdateStatus($"Broadcasted key {keyNumber} to {windows.Count} windows using {method} method.");
+        }
+
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            _lowLevelInputSimulator?.Dispose();
-            _backgroundInputSimulator?.Dispose();
-            _hardwareInputSimulator?.Dispose();
             _hotkeyManager?.Dispose();
             base.OnFormClosed(e);
         }
