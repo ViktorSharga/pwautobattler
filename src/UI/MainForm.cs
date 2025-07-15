@@ -13,6 +13,7 @@ namespace GameAutomation.UI
         private readonly InputSimulator _inputSimulator;
         private readonly LowLevelInputSimulator _lowLevelInputSimulator;
         private readonly EnhancedBackgroundInputSimulator _backgroundInputSimulator;
+        private readonly HardwareInputSimulator _hardwareInputSimulator;
         private readonly HotkeyManager _hotkeyManager;
         private readonly Dictionary<int, GameWindow> _registeredWindows;
 
@@ -42,6 +43,14 @@ namespace GameAutomation.UI
         private Button _startBackgroundButton = null!;
         private Button _stopBackgroundButton = null!;
         private Label _backgroundStatusLabel = null!;
+        
+        // Hardware input controls
+        private GroupBox _hardwareGroupBox = null!;
+        private CheckBox _enableHardwareCheckBox = null!;
+        private Button _startHardwareButton = null!;
+        private Button _stopHardwareButton = null!;
+        private Label _hardwareStatusLabel = null!;
+        private TextBox _hardwareInfoTextBox = null!;
 
         public MainForm()
         {
@@ -49,6 +58,7 @@ namespace GameAutomation.UI
             _inputSimulator = new InputSimulator();
             _lowLevelInputSimulator = new LowLevelInputSimulator();
             _backgroundInputSimulator = new EnhancedBackgroundInputSimulator();
+            _hardwareInputSimulator = new HardwareInputSimulator();
             _hotkeyManager = new HotkeyManager();
             _registeredWindows = new Dictionary<int, GameWindow>();
 
@@ -56,12 +66,13 @@ namespace GameAutomation.UI
             SetupHotkeys();
             SetupLowLevelSimulator();
             SetupBackgroundSimulator();
+            SetupHardwareSimulator();
         }
 
         private void InitializeComponent()
         {
-            Text = "Game Multi-Window Controller - Advanced Edition";
-            Size = new System.Drawing.Size(600, 750);
+            Text = "Game Multi-Window Controller - Hardware Edition";
+            Size = new System.Drawing.Size(600, 900);
             StartPosition = FormStartPosition.CenterScreen;
 
             // Window list
@@ -275,20 +286,82 @@ namespace GameAutomation.UI
             _backgroundGroupBox.Controls.Add(_stopBackgroundButton);
             _backgroundGroupBox.Controls.Add(_backgroundStatusLabel);
 
+            // Hardware input controls group
+            _hardwareGroupBox = new GroupBox
+            {
+                Text = "Hardware Input Simulation (Real Hardware ID Spoofing)",
+                Location = new System.Drawing.Point(10, 560),
+                Size = new System.Drawing.Size(560, 180),
+                ForeColor = System.Drawing.Color.DarkMagenta
+            };
+
+            _enableHardwareCheckBox = new CheckBox
+            {
+                Text = "Enable Hardware Mode (Real peripheral device simulation)",
+                Location = new System.Drawing.Point(10, 20),
+                Size = new System.Drawing.Size(400, 20),
+                ForeColor = System.Drawing.Color.DarkMagenta
+            };
+            _enableHardwareCheckBox.CheckedChanged += EnableHardwareCheckBox_CheckedChanged;
+
+            _startHardwareButton = new Button
+            {
+                Text = "Start Hardware Simulation",
+                Location = new System.Drawing.Point(10, 50),
+                Size = new System.Drawing.Size(150, 30),
+                Enabled = false,
+                BackColor = System.Drawing.Color.LightGreen
+            };
+            _startHardwareButton.Click += StartHardwareButton_Click;
+
+            _stopHardwareButton = new Button
+            {
+                Text = "Stop Hardware Simulation",
+                Location = new System.Drawing.Point(170, 50),
+                Size = new System.Drawing.Size(150, 30),
+                Enabled = false,
+                BackColor = System.Drawing.Color.LightCoral
+            };
+            _stopHardwareButton.Click += StopHardwareButton_Click;
+
+            _hardwareStatusLabel = new Label
+            {
+                Text = "Hardware mode disabled",
+                Location = new System.Drawing.Point(330, 55),
+                Size = new System.Drawing.Size(220, 20),
+                ForeColor = System.Drawing.Color.Gray
+            };
+
+            _hardwareInfoTextBox = new TextBox
+            {
+                Location = new System.Drawing.Point(10, 90),
+                Size = new System.Drawing.Size(540, 80),
+                Multiline = true,
+                ReadOnly = true,
+                ScrollBars = ScrollBars.Vertical,
+                Text = "Hardware devices will be listed here..."
+            };
+
+            _hardwareGroupBox.Controls.Add(_enableHardwareCheckBox);
+            _hardwareGroupBox.Controls.Add(_startHardwareButton);
+            _hardwareGroupBox.Controls.Add(_stopHardwareButton);
+            _hardwareGroupBox.Controls.Add(_hardwareStatusLabel);
+            _hardwareGroupBox.Controls.Add(_hardwareInfoTextBox);
+
             // Status
             _statusLabel = new Label
             {
                 Text = "Status: Ready. Use Ctrl+Shift+1/2/3 to register windows.",
-                Location = new System.Drawing.Point(10, 560),
-                Size = new System.Drawing.Size(560, 80),
+                Location = new System.Drawing.Point(10, 750),
+                Size = new System.Drawing.Size(560, 60),
                 BorderStyle = BorderStyle.Fixed3D
             };
 
             // Instructions
             var instructionsLabel = new Label
             {
-                Text = "Enhanced Background Mode: Detects DirectInput/RawInput games and uses specialized methods.\nMultiple fallback methods: Thread attachment, advanced messaging, child window targeting.\nRecommended for modern games that bypass Windows message queue.",
-                Location = new System.Drawing.Point(10, 650),
+                Text = "Hardware Mode: Enumerates real hardware devices and simulates genuine hardware input.\nUses actual device VID/PID and hardware scan codes for maximum authenticity.\nRecommended for games with advanced anti-cheat or input validation.",
+                Location = new System.Drawing.Point(10, 820),
                 Size = new System.Drawing.Size(560, 60),
                 ForeColor = System.Drawing.Color.DarkBlue
             };
@@ -307,6 +380,7 @@ namespace GameAutomation.UI
             Controls.Add(_stopMovementButton);
             Controls.Add(_lowLevelGroupBox);
             Controls.Add(_backgroundGroupBox);
+            Controls.Add(_hardwareGroupBox);
             Controls.Add(_statusLabel);
             Controls.Add(instructionsLabel);
         }
@@ -341,6 +415,21 @@ namespace GameAutomation.UI
                     UpdateStatus($"Enhanced: {message}");
                 }));
             };
+        }
+
+        private void SetupHardwareSimulator()
+        {
+            _hardwareInputSimulator.OnStatusUpdate += (message) =>
+            {
+                Invoke(new Action(() =>
+                {
+                    _hardwareStatusLabel.Text = message;
+                    UpdateStatus($"Hardware: {message}");
+                }));
+            };
+            
+            // Display hardware info
+            _hardwareInfoTextBox.Text = _hardwareInputSimulator.GetHardwareInfo();
         }
 
         private void EnableLowLevelCheckBox_CheckedChanged(object? sender, EventArgs e)
@@ -442,6 +531,45 @@ namespace GameAutomation.UI
             UpdateStatus("Enhanced background broadcasting stopped.");
         }
 
+        private void EnableHardwareCheckBox_CheckedChanged(object? sender, EventArgs e)
+        {
+            bool enabled = _enableHardwareCheckBox.Checked;
+            
+            _startHardwareButton.Enabled = enabled;
+            _stopHardwareButton.Enabled = enabled;
+
+            if (enabled)
+            {
+                _hardwareStatusLabel.Text = "Hardware mode enabled - ready to start";
+                _hardwareStatusLabel.ForeColor = System.Drawing.Color.DarkGreen;
+                UpdateStatus("Hardware mode enabled. Click 'Start Hardware Simulation' to begin.");
+            }
+            else
+            {
+                _hardwareInputSimulator.StopRealTimeBroadcast();
+                _hardwareStatusLabel.Text = "Hardware mode disabled";
+                _hardwareStatusLabel.ForeColor = System.Drawing.Color.Gray;
+                UpdateStatus("Hardware mode disabled.");
+            }
+        }
+
+        private void StartHardwareButton_Click(object? sender, EventArgs e)
+        {
+            _hardwareInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
+            _hardwareInputSimulator.StartRealTimeBroadcast();
+            _startHardwareButton.Enabled = false;
+            _stopHardwareButton.Enabled = true;
+            UpdateStatus("Hardware simulation active! Using real device hardware IDs.");
+        }
+
+        private void StopHardwareButton_Click(object? sender, EventArgs e)
+        {
+            _hardwareInputSimulator.StopRealTimeBroadcast();
+            _startHardwareButton.Enabled = true;
+            _stopHardwareButton.Enabled = false;
+            UpdateStatus("Hardware simulation stopped.");
+        }
+
         private void RegisterWindow(int slot)
         {
             var activeWindow = _windowManager.GetActiveWindow();
@@ -462,6 +590,12 @@ namespace GameAutomation.UI
                 if (_enableBackgroundCheckBox.Checked)
                 {
                     _backgroundInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
+                }
+                
+                // Update hardware simulator if active
+                if (_enableHardwareCheckBox.Checked)
+                {
+                    _hardwareInputSimulator.RegisteredWindows = _registeredWindows.Values.ToList();
                 }
             }
             else
@@ -509,7 +643,12 @@ namespace GameAutomation.UI
 
         private void SendQButton_Click(object? sender, EventArgs e)
         {
-            if (_enableBackgroundCheckBox.Checked)
+            if (_enableHardwareCheckBox.Checked)
+            {
+                _hardwareInputSimulator.SendHardwareKeyPress(VirtualKeyCode.VK_Q);
+                UpdateStatus("Sent Q key using hardware simulation (real device VID/PID).");
+            }
+            else if (_enableBackgroundCheckBox.Checked)
             {
                 _backgroundInputSimulator.SendEnhancedKeyPress(VirtualKeyCode.VK_Q);
                 UpdateStatus("Sent Q key using enhanced background method (no focus switch).");
@@ -533,7 +672,12 @@ namespace GameAutomation.UI
 
         private void Send1Button_Click(object? sender, EventArgs e)
         {
-            if (_enableBackgroundCheckBox.Checked)
+            if (_enableHardwareCheckBox.Checked)
+            {
+                _hardwareInputSimulator.SendHardwareKeyPress(VirtualKeyCode.VK_1);
+                UpdateStatus("Sent 1 key using hardware simulation (real device VID/PID).");
+            }
+            else if (_enableBackgroundCheckBox.Checked)
             {
                 _backgroundInputSimulator.SendEnhancedKeyPress(VirtualKeyCode.VK_1);
                 UpdateStatus("Sent 1 key using enhanced background method (no focus switch).");
@@ -557,7 +701,12 @@ namespace GameAutomation.UI
 
         private void StartMovementButton_Click(object? sender, EventArgs e)
         {
-            if (_enableBackgroundCheckBox.Checked)
+            if (_enableHardwareCheckBox.Checked)
+            {
+                _hardwareInputSimulator.SendHardwareKeyDown(VirtualKeyCode.VK_W);
+                UpdateStatus("Started movement using hardware simulation (real device VID/PID).");
+            }
+            else if (_enableBackgroundCheckBox.Checked)
             {
                 _backgroundInputSimulator.SendEnhancedKeyDown(VirtualKeyCode.VK_W);
                 UpdateStatus("Started movement using enhanced background method (no focus switch).");
@@ -572,7 +721,12 @@ namespace GameAutomation.UI
 
         private void StopMovementButton_Click(object? sender, EventArgs e)
         {
-            if (_enableBackgroundCheckBox.Checked)
+            if (_enableHardwareCheckBox.Checked)
+            {
+                _hardwareInputSimulator.SendHardwareKeyUp(VirtualKeyCode.VK_W);
+                UpdateStatus("Stopped movement using hardware simulation (real device VID/PID).");
+            }
+            else if (_enableBackgroundCheckBox.Checked)
             {
                 _backgroundInputSimulator.SendEnhancedKeyUp(VirtualKeyCode.VK_W);
                 UpdateStatus("Stopped movement using enhanced background method (no focus switch).");
@@ -621,6 +775,7 @@ namespace GameAutomation.UI
         {
             _lowLevelInputSimulator?.Dispose();
             _backgroundInputSimulator?.Dispose();
+            _hardwareInputSimulator?.Dispose();
             _hotkeyManager?.Dispose();
             base.OnFormClosed(e);
         }
