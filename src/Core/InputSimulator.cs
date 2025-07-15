@@ -22,7 +22,8 @@ namespace GameAutomation.Core
         SendMessage,
         SendInput,
         KeyboardEvent,
-        ScanCode
+        ScanCode,
+        KeyboardEventOptimized
     }
 
     public class InputSimulator
@@ -39,6 +40,9 @@ namespace GameAutomation.Core
         private const int KEYEVENTF_SCANCODE = 0x0008;
         private const int KEYEVENTF_EXTENDEDKEY = 0x0001;
         private const int KEYEVENTF_UNICODE = 0x0004;
+        
+        private const int SW_MINIMIZE = 6;
+        private const int SW_RESTORE = 9;
 
         [StructLayout(LayoutKind.Sequential)]
         private struct INPUT
@@ -103,10 +107,23 @@ namespace GameAutomation.Core
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
 
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
         private const uint SMTO_NORMAL = 0x0000;
         private const uint GW_CHILD = 5;
+        private const uint SWP_NOSIZE = 0x0001;
+        private const uint SWP_NOMOVE = 0x0002;
+        private const uint SWP_NOZORDER = 0x0004;
+        private const uint SWP_NOACTIVATE = 0x0010;
 
-        public InputMethod CurrentMethod { get; set; } = InputMethod.PostMessage;
+        public InputMethod CurrentMethod { get; set; } = InputMethod.KeyboardEventOptimized;
+        
+        // Store states for held keys
+        private readonly Dictionary<IntPtr, HashSet<VirtualKeyCode>> _heldKeys = new();
 
         public bool SendKeyPress(IntPtr windowHandle, VirtualKeyCode key, InputMethod method = InputMethod.PostMessage)
         {
@@ -125,6 +142,8 @@ namespace GameAutomation.Core
                     return SendKeyPressKeyboardEvent(windowHandle, key);
                 case InputMethod.ScanCode:
                     return SendKeyPressScanCode(windowHandle, key);
+                case InputMethod.KeyboardEventOptimized:
+                    return SendKeyPressKeyboardEventOptimized(windowHandle, key);
                 default:
                     return SendKeyPressPostMessage(windowHandle, key);
             }
@@ -280,6 +299,34 @@ namespace GameAutomation.Core
             }
         }
 
+        private bool SendKeyPressKeyboardEventOptimized(IntPtr windowHandle, VirtualKeyCode key)
+        {
+            try
+            {
+                IntPtr originalForeground = GetForegroundWindow();
+                
+                // Minimize the delay - just enough for the window to register
+                SetForegroundWindow(windowHandle);
+                Thread.Sleep(10); // Reduced from 100ms
+
+                byte vk = (byte)key;
+                byte scan = (byte)MapVirtualKey((uint)key, 0);
+
+                keybd_event(vk, scan, 0, UIntPtr.Zero);
+                Thread.Sleep(30); // Reduced from 50ms
+                keybd_event(vk, scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+
+                // Immediate return to original window
+                SetForegroundWindow(originalForeground);
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         private bool SendKeyPressScanCode(IntPtr windowHandle, VirtualKeyCode key)
         {
             try
@@ -342,6 +389,18 @@ namespace GameAutomation.Core
             if (!ValidateWindow(windowHandle))
                 return false;
 
+            // Track held keys
+            if (!_heldKeys.ContainsKey(windowHandle))
+                _heldKeys[windowHandle] = new HashSet<VirtualKeyCode>();
+            
+            _heldKeys[windowHandle].Add(key);
+
+            // Use optimized keyboard event for movement
+            if (CurrentMethod == InputMethod.KeyboardEvent || CurrentMethod == InputMethod.KeyboardEventOptimized)
+            {
+                return SendKeyDownKeyboardEvent(windowHandle, key);
+            }
+
             try
             {
                 uint scanCode = MapVirtualKey((uint)key, 0);
@@ -361,12 +420,76 @@ namespace GameAutomation.Core
             if (!ValidateWindow(windowHandle))
                 return false;
 
+            // Remove from held keys
+            if (_heldKeys.ContainsKey(windowHandle))
+                _heldKeys[windowHandle].Remove(key);
+
+            // Use optimized keyboard event for movement
+            if (CurrentMethod == InputMethod.KeyboardEvent || CurrentMethod == InputMethod.KeyboardEventOptimized)
+            {
+                return SendKeyUpKeyboardEvent(windowHandle, key);
+            }
+
             try
             {
                 uint scanCode = MapVirtualKey((uint)key, 0);
                 IntPtr lParam = new IntPtr((scanCode << 16) | 0xC0000001);
 
                 PostMessage(windowHandle, WM_KEYUP, new IntPtr((int)key), lParam);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        private bool SendKeyDownKeyboardEvent(IntPtr windowHandle, VirtualKeyCode key)
+        {
+            try
+            {
+                IntPtr originalForeground = GetForegroundWindow();
+                
+                // Quick focus switch
+                SetForegroundWindow(windowHandle);
+                Thread.Sleep(5); // Minimal delay
+
+                byte vk = (byte)key;
+                byte scan = (byte)MapVirtualKey((uint)key, 0);
+
+                keybd_event(vk, scan, 0, UIntPtr.Zero);
+
+                // Don't restore focus yet - key is being held
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        private bool SendKeyUpKeyboardEvent(IntPtr windowHandle, VirtualKeyCode key)
+        {
+            try
+            {
+                IntPtr originalForeground = GetForegroundWindow();
+                
+                // Ensure we're focused
+                SetForegroundWindow(windowHandle);
+                Thread.Sleep(5);
+
+                byte vk = (byte)key;
+                byte scan = (byte)MapVirtualKey((uint)key, 0);
+
+                keybd_event(vk, scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+
+                // Check if any keys are still held for this window
+                if (!_heldKeys.ContainsKey(windowHandle) || _heldKeys[windowHandle].Count == 0)
+                {
+                    // No more held keys, restore original focus
+                    SetForegroundWindow(originalForeground);
+                }
+
                 return true;
             }
             catch (Exception)
@@ -382,7 +505,7 @@ namespace GameAutomation.Core
                 if (window.IsActive && ValidateWindow(window.WindowHandle))
                 {
                     inputAction(window.WindowHandle);
-                    Thread.Sleep(100);
+                    Thread.Sleep(50); // Reduced from 100ms
                 }
             }
         }
@@ -396,6 +519,7 @@ namespace GameAutomation.Core
                 if (SendKeyPress(windowHandle, key, method))
                 {
                     Debug.WriteLine($"Success with method: {method}");
+                    CurrentMethod = method; // Remember the working method
                     return true;
                 }
                 Thread.Sleep(100);

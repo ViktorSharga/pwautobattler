@@ -79,7 +79,7 @@ namespace GameAutomation.UI
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             _methodComboBox.Items.AddRange(Enum.GetNames(typeof(InputMethod)));
-            _methodComboBox.SelectedIndex = 0;
+            _methodComboBox.SelectedItem = "KeyboardEventOptimized"; // Set optimized as default
             _methodComboBox.SelectedIndexChanged += MethodComboBox_SelectedIndexChanged;
 
             _testAllMethodsButton = new Button
@@ -143,10 +143,10 @@ namespace GameAutomation.UI
             // Instructions
             var instructionsLabel = new Label
             {
-                Text = "Note: If keys are going to chat, try different input methods.\nSendInput/KeyboardEvent/ScanCode require window focus.",
+                Text = "Note: KeyboardEventOptimized is recommended for most games.\nIt minimizes window flickering and supports proper movement.",
                 Location = new System.Drawing.Point(10, 440),
                 Size = new System.Drawing.Size(510, 40),
-                ForeColor = System.Drawing.Color.DarkBlue
+                ForeColor = System.Drawing.Color.DarkGreen
             };
 
             // Add controls to form
