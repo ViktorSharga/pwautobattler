@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using GameAutomation.Core;
 using GameAutomation.Models;
@@ -9,6 +10,11 @@ namespace GameAutomation.UI
 {
     public partial class MainForm : Form
     {
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
         private readonly WindowManager _windowManager;
         private readonly InputSimulator _inputSimulator;
         private readonly HotkeyManager _hotkeyManager;
@@ -348,7 +354,6 @@ namespace GameAutomation.UI
                 return;
             }
 
-            var method = _inputSimulator.CurrentMethod;
             VirtualKeyCode keyCode = keyNumber switch
             {
                 1 => VirtualKeyCode.VK_1,
@@ -363,10 +368,30 @@ namespace GameAutomation.UI
                 _ => VirtualKeyCode.VK_1
             };
 
-            _inputSimulator.BroadcastToAll(windows, hwnd => 
-                _inputSimulator.SendKeyPress(hwnd, keyCode, method));
+            // Store current foreground window
+            var currentWindow = GetForegroundWindow();
             
-            UpdateStatus($"Broadcasted key {keyNumber} to {windows.Count} windows using {method} method.");
+            // Use PostMessage method to avoid focus switching
+            foreach (var window in windows)
+            {
+                if (window.IsActive)
+                {
+                    _inputSimulator.SendKeyPress(window.WindowHandle, keyCode, InputMethod.PostMessage);
+                }
+            }
+            
+            // Return to window 1 if it exists and is active
+            if (_registeredWindows.ContainsKey(1) && _registeredWindows[1].IsActive)
+            {
+                SetForegroundWindow(_registeredWindows[1].WindowHandle);
+            }
+            else
+            {
+                // If window 1 doesn't exist, return to original window
+                SetForegroundWindow(currentWindow);
+            }
+            
+            UpdateStatus($"Broadcasted key {keyNumber} to {windows.Count} windows using PostMessage method.");
         }
 
         private void SetupGlobalKeyListener()
