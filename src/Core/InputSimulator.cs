@@ -16,7 +16,13 @@ namespace GameAutomation.Core
         VK_Q = 0x51,
         VK_1 = 0x31,
         VK_2 = 0x32,
-        VK_3 = 0x33
+        VK_3 = 0x33,
+        VK_4 = 0x34,
+        VK_5 = 0x35,
+        VK_6 = 0x36,
+        VK_7 = 0x37,
+        VK_8 = 0x38,
+        VK_9 = 0x39
     }
 
     public enum InputMethod
@@ -204,8 +210,10 @@ namespace GameAutomation.Core
                 SendMessageTimeout(windowHandle, WM_KEYUP, new IntPtr((int)key), lParamUp, SMTO_NORMAL, 100, out result);
 
                 // Also try WM_CHAR for character keys
-                if (key == VirtualKeyCode.VK_Q || key == VirtualKeyCode.VK_W || 
-                    key == VirtualKeyCode.VK_1 || key == VirtualKeyCode.VK_2 || key == VirtualKeyCode.VK_3)
+                if (key == VirtualKeyCode.VK_Q || key == VirtualKeyCode.VK_W || key == VirtualKeyCode.VK_A || key == VirtualKeyCode.VK_S || key == VirtualKeyCode.VK_D ||
+                    key == VirtualKeyCode.VK_1 || key == VirtualKeyCode.VK_2 || key == VirtualKeyCode.VK_3 ||
+                    key == VirtualKeyCode.VK_4 || key == VirtualKeyCode.VK_5 || key == VirtualKeyCode.VK_6 ||
+                    key == VirtualKeyCode.VK_7 || key == VirtualKeyCode.VK_8 || key == VirtualKeyCode.VK_9)
                 {
                     char ch = GetCharFromVirtualKey(key);
                     SendMessage(windowHandle, WM_CHAR, new IntPtr(ch), IntPtr.Zero);
@@ -547,6 +555,12 @@ namespace GameAutomation.Core
                 case VirtualKeyCode.VK_1: return '1';
                 case VirtualKeyCode.VK_2: return '2';
                 case VirtualKeyCode.VK_3: return '3';
+                case VirtualKeyCode.VK_4: return '4';
+                case VirtualKeyCode.VK_5: return '5';
+                case VirtualKeyCode.VK_6: return '6';
+                case VirtualKeyCode.VK_7: return '7';
+                case VirtualKeyCode.VK_8: return '8';
+                case VirtualKeyCode.VK_9: return '9';
                 default: return '\0';
             }
         }
