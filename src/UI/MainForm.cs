@@ -26,6 +26,7 @@ namespace GameAutomation.UI
         private Label _methodLabel = null!;
         private CheckBox _broadcastModeCheckBox = null!;
         private bool _broadcastMode = false;
+        private LowLevelKeyboardHook? _keyboardHook;
 
         public MainForm()
         {
@@ -36,6 +37,11 @@ namespace GameAutomation.UI
 
             InitializeComponent();
             SetupHotkeys();
+            _hotkeyManager.StartListening();
+            
+            // Initialize keyboard hook
+            _keyboardHook = new LowLevelKeyboardHook();
+            _keyboardHook.KeyDown += OnGlobalKeyDown;
         }
 
         private void InitializeComponent()
@@ -180,17 +186,17 @@ namespace GameAutomation.UI
 
         private void SetupHotkeys()
         {
-            _hotkeyManager.RegisterHotkey(Keys.D1, () => HandleKeyPress(1));
-            _hotkeyManager.RegisterHotkey(Keys.D2, () => HandleKeyPress(2));
-            _hotkeyManager.RegisterHotkey(Keys.D3, () => HandleKeyPress(3));
-            _hotkeyManager.RegisterHotkey(Keys.D4, () => HandleKeyPress(4));
-            _hotkeyManager.RegisterHotkey(Keys.D5, () => HandleKeyPress(5));
-            _hotkeyManager.RegisterHotkey(Keys.D6, () => HandleKeyPress(6));
-            _hotkeyManager.RegisterHotkey(Keys.D7, () => HandleKeyPress(7));
-            _hotkeyManager.RegisterHotkey(Keys.D8, () => HandleKeyPress(8));
-            _hotkeyManager.RegisterHotkey(Keys.D9, () => HandleKeyPress(9));
+            // Ctrl+Shift+1-9/0 for window registration
+            _hotkeyManager.RegisterHotkey(Keys.D1, () => RegisterWindow(1));
+            _hotkeyManager.RegisterHotkey(Keys.D2, () => RegisterWindow(2));
+            _hotkeyManager.RegisterHotkey(Keys.D3, () => RegisterWindow(3));
+            _hotkeyManager.RegisterHotkey(Keys.D4, () => RegisterWindow(4));
+            _hotkeyManager.RegisterHotkey(Keys.D5, () => RegisterWindow(5));
+            _hotkeyManager.RegisterHotkey(Keys.D6, () => RegisterWindow(6));
+            _hotkeyManager.RegisterHotkey(Keys.D7, () => RegisterWindow(7));
+            _hotkeyManager.RegisterHotkey(Keys.D8, () => RegisterWindow(8));
+            _hotkeyManager.RegisterHotkey(Keys.D9, () => RegisterWindow(9));
             _hotkeyManager.RegisterHotkey(Keys.D0, () => RegisterWindow(10));
-            _hotkeyManager.StartListening();
         }
 
         private void RegisterWindow(int slot)
@@ -317,22 +323,21 @@ namespace GameAutomation.UI
         private void BroadcastModeCheckBox_CheckedChanged(object? sender, EventArgs e)
         {
             _broadcastMode = _broadcastModeCheckBox.Checked;
-            UpdateStatus($"Broadcast mode {(_broadcastMode ? "enabled" : "disabled")}. {(_broadcastMode ? "Press 1-9 to broadcast keys." : "Press Ctrl+Shift+1-9/0 to register windows.")}");
-        }
-
-        private void HandleKeyPress(int keyNumber)
-        {
+            
             if (_broadcastMode)
             {
-                // Broadcast the key to all windows
-                BroadcastKeyToAllWindows(keyNumber);
+                // Enable global key listener for 1-9 keys
+                SetupGlobalKeyListener();
             }
             else
             {
-                // Register window to slot
-                RegisterWindow(keyNumber);
+                // Disable global key listener
+                RemoveGlobalKeyListener();
             }
+            
+            UpdateStatus($"Broadcast mode {(_broadcastMode ? "enabled" : "disabled")}. {(_broadcastMode ? "Press 1-9 to broadcast keys." : "Use Ctrl+Shift+1-9/0 to register windows.")}");
         }
+
 
         private void BroadcastKeyToAllWindows(int keyNumber)
         {
@@ -364,8 +369,45 @@ namespace GameAutomation.UI
             UpdateStatus($"Broadcasted key {keyNumber} to {windows.Count} windows using {method} method.");
         }
 
+        private void SetupGlobalKeyListener()
+        {
+            _keyboardHook?.StartListening();
+        }
+
+        private void RemoveGlobalKeyListener()
+        {
+            _keyboardHook?.StopListening();
+        }
+
+        private void OnGlobalKeyDown(object? sender, Keys key)
+        {
+            if (!_broadcastMode) return;
+            
+            // Only handle keys 1-9 when broadcast mode is enabled
+            int keyNumber = key switch
+            {
+                Keys.D1 => 1,
+                Keys.D2 => 2,
+                Keys.D3 => 3,
+                Keys.D4 => 4,
+                Keys.D5 => 5,
+                Keys.D6 => 6,
+                Keys.D7 => 7,
+                Keys.D8 => 8,
+                Keys.D9 => 9,
+                _ => 0
+            };
+            
+            if (keyNumber > 0)
+            {
+                // Broadcast the key to all windows
+                BroadcastKeyToAllWindows(keyNumber);
+            }
+        }
+
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            _keyboardHook?.Dispose();
             _hotkeyManager?.Dispose();
             base.OnFormClosed(e);
         }
