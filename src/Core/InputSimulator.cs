@@ -9,8 +9,11 @@ namespace GameAutomation.Core
 {
     public enum VirtualKeyCode : ushort
     {
-        VK_Q = 0x51,
+        VK_A = 0x41,
+        VK_S = 0x53,
+        VK_D = 0x44,
         VK_W = 0x57,
+        VK_Q = 0x51,
         VK_1 = 0x31,
         VK_2 = 0x32,
         VK_3 = 0x33
@@ -536,8 +539,11 @@ namespace GameAutomation.Core
         {
             switch (key)
             {
-                case VirtualKeyCode.VK_Q: return 'q';
+                case VirtualKeyCode.VK_A: return 'a';
+                case VirtualKeyCode.VK_S: return 's';
+                case VirtualKeyCode.VK_D: return 'd';
                 case VirtualKeyCode.VK_W: return 'w';
+                case VirtualKeyCode.VK_Q: return 'q';
                 case VirtualKeyCode.VK_1: return '1';
                 case VirtualKeyCode.VK_2: return '2';
                 case VirtualKeyCode.VK_3: return '3';
