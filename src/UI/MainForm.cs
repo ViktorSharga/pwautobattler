@@ -371,12 +371,13 @@ namespace GameAutomation.UI
             // Store current foreground window
             var currentWindow = GetForegroundWindow();
             
-            // Use PostMessage method to avoid focus switching
+            // Use the selected method from dropdown
+            var method = _inputSimulator.CurrentMethod;
             foreach (var window in windows)
             {
                 if (window.IsActive)
                 {
-                    _inputSimulator.SendKeyPress(window.WindowHandle, keyCode, InputMethod.PostMessage);
+                    _inputSimulator.SendKeyPress(window.WindowHandle, keyCode, method);
                 }
             }
             
@@ -391,7 +392,7 @@ namespace GameAutomation.UI
                 SetForegroundWindow(currentWindow);
             }
             
-            UpdateStatus($"Broadcasted key {keyNumber} to {windows.Count} windows using PostMessage method.");
+            UpdateStatus($"Broadcasted key {keyNumber} to {windows.Count} windows using {method} method.");
         }
 
         private void SetupGlobalKeyListener()
