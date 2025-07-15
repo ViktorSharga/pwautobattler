@@ -14,6 +14,52 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+# Build artifacts
+*.dll
+*.exe
+*.pdb
+*.exe.config
+*.runtimeconfig.json
+*.deps.json
+*.manifest
+*.application
+*.deploy
+*.msp
+*.msm
+*.wixobj
+*.wixpdb
+
+# Windows specific build artifacts
+*.ilk
+*.lib
+*.obj
+*.pch
+*.idb
+*.res
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.exp
+*.lastbuildstate
+*.iobj
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
 # Visual Studio 2015/2017 cache/options directory
 .vs/
 
@@ -152,11 +198,39 @@ publish/
 # BenchmarkDotNet
 BenchmarkDotNet.Artifacts/
 
-# .NET
-*.dll
+# .NET Core / .NET 5+ specific
+*.runtimeconfig.json
+*.runtimeconfig.dev.json
+*.deps.json
+project.lock.json
+project.fragment.lock.json
+artifacts/
+**/Properties/launchSettings.json
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# StyleCop
+StyleCopReport.xml
+
+# Files built by Visual Studio
 *.exe
+*.dll
 *.pdb
+*.user
+*.aps
+*.pch
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# Allow specific executables if needed
 !NuGet.exe
+!packages/*/tools/*.exe
+!packages/*/build/*.exe
 
 # NCrunch
 _NCrunch_*
