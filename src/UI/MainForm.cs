@@ -12,7 +12,7 @@ namespace GameAutomation.UI
         private readonly WindowManager _windowManager;
         private readonly InputSimulator _inputSimulator;
         private readonly LowLevelInputSimulator _lowLevelInputSimulator;
-        private readonly BackgroundInputSimulator _backgroundInputSimulator;
+        private readonly EnhancedBackgroundInputSimulator _backgroundInputSimulator;
         private readonly HotkeyManager _hotkeyManager;
         private readonly Dictionary<int, GameWindow> _registeredWindows;
 
@@ -48,7 +48,7 @@ namespace GameAutomation.UI
             _windowManager = new WindowManager();
             _inputSimulator = new InputSimulator();
             _lowLevelInputSimulator = new LowLevelInputSimulator();
-            _backgroundInputSimulator = new BackgroundInputSimulator();
+            _backgroundInputSimulator = new EnhancedBackgroundInputSimulator();
             _hotkeyManager = new HotkeyManager();
             _registeredWindows = new Dictionary<int, GameWindow>();
 
@@ -227,7 +227,7 @@ namespace GameAutomation.UI
             // Background input controls group
             _backgroundGroupBox = new GroupBox
             {
-                Text = "True Background Input Simulation (No Focus Switch)",
+                Text = "Enhanced Background Input Simulation (No Focus Switch)",
                 Location = new System.Drawing.Point(10, 450),
                 Size = new System.Drawing.Size(560, 100),
                 ForeColor = System.Drawing.Color.DarkGreen
@@ -235,7 +235,7 @@ namespace GameAutomation.UI
 
             _enableBackgroundCheckBox = new CheckBox
             {
-                Text = "Enable Background Mode (UiPath-style no focus switching)",
+                Text = "Enable Enhanced Background Mode (DirectInput/RawInput detection)",
                 Location = new System.Drawing.Point(10, 20),
                 Size = new System.Drawing.Size(400, 20),
                 ForeColor = System.Drawing.Color.DarkGreen
@@ -244,7 +244,7 @@ namespace GameAutomation.UI
 
             _startBackgroundButton = new Button
             {
-                Text = "Start Background Broadcasting",
+                Text = "Start Enhanced Broadcasting",
                 Location = new System.Drawing.Point(10, 50),
                 Size = new System.Drawing.Size(150, 30),
                 Enabled = false,
@@ -254,7 +254,7 @@ namespace GameAutomation.UI
 
             _stopBackgroundButton = new Button
             {
-                Text = "Stop Background Broadcasting",
+                Text = "Stop Enhanced Broadcasting",
                 Location = new System.Drawing.Point(170, 50),
                 Size = new System.Drawing.Size(150, 30),
                 Enabled = false,
@@ -264,7 +264,7 @@ namespace GameAutomation.UI
 
             _backgroundStatusLabel = new Label
             {
-                Text = "Background mode disabled",
+                Text = "Enhanced mode disabled",
                 Location = new System.Drawing.Point(330, 55),
                 Size = new System.Drawing.Size(220, 20),
                 ForeColor = System.Drawing.Color.Gray
@@ -287,7 +287,7 @@ namespace GameAutomation.UI
             // Instructions
             var instructionsLabel = new Label
             {
-                Text = "Background Mode: Uses UiPath-style techniques to send input without focus switching.\nMultiple fallback methods: WM_CHAR, child window targeting, game control detection.\nRecommended for smooth multi-window control.",
+                Text = "Enhanced Background Mode: Detects DirectInput/RawInput games and uses specialized methods.\nMultiple fallback methods: Thread attachment, advanced messaging, child window targeting.\nRecommended for modern games that bypass Windows message queue.",
                 Location = new System.Drawing.Point(10, 650),
                 Size = new System.Drawing.Size(560, 60),
                 ForeColor = System.Drawing.Color.DarkBlue
@@ -338,7 +338,7 @@ namespace GameAutomation.UI
                 Invoke(new Action(() =>
                 {
                     _backgroundStatusLabel.Text = message;
-                    UpdateStatus($"Background: {message}");
+                    UpdateStatus($"Enhanced: {message}");
                 }));
             };
         }
@@ -412,16 +412,16 @@ namespace GameAutomation.UI
 
             if (enabled)
             {
-                _backgroundStatusLabel.Text = "Background mode enabled - ready to start";
+                _backgroundStatusLabel.Text = "Enhanced mode enabled - ready to start";
                 _backgroundStatusLabel.ForeColor = System.Drawing.Color.DarkGreen;
-                UpdateStatus("Background mode enabled. Click 'Start Background Broadcasting' to begin.");
+                UpdateStatus("Enhanced background mode enabled. Click 'Start Enhanced Broadcasting' to begin.");
             }
             else
             {
                 _backgroundInputSimulator.StopRealTimeBroadcast();
-                _backgroundStatusLabel.Text = "Background mode disabled";
+                _backgroundStatusLabel.Text = "Enhanced mode disabled";
                 _backgroundStatusLabel.ForeColor = System.Drawing.Color.Gray;
-                UpdateStatus("Background mode disabled.");
+                UpdateStatus("Enhanced background mode disabled.");
             }
         }
 
@@ -431,7 +431,7 @@ namespace GameAutomation.UI
             _backgroundInputSimulator.StartRealTimeBroadcast();
             _startBackgroundButton.Enabled = false;
             _stopBackgroundButton.Enabled = true;
-            UpdateStatus("Background broadcasting active! No focus switching.");
+            UpdateStatus("Enhanced background broadcasting active! Game type analysis in progress.");
         }
 
         private void StopBackgroundButton_Click(object? sender, EventArgs e)
@@ -439,7 +439,7 @@ namespace GameAutomation.UI
             _backgroundInputSimulator.StopRealTimeBroadcast();
             _startBackgroundButton.Enabled = true;
             _stopBackgroundButton.Enabled = false;
-            UpdateStatus("Background broadcasting stopped.");
+            UpdateStatus("Enhanced background broadcasting stopped.");
         }
 
         private void RegisterWindow(int slot)
@@ -511,8 +511,8 @@ namespace GameAutomation.UI
         {
             if (_enableBackgroundCheckBox.Checked)
             {
-                _backgroundInputSimulator.SendBackgroundKeyPress(VirtualKeyCode.VK_Q);
-                UpdateStatus("Sent Q key using background method (no focus switch).");
+                _backgroundInputSimulator.SendEnhancedKeyPress(VirtualKeyCode.VK_Q);
+                UpdateStatus("Sent Q key using enhanced background method (no focus switch).");
             }
             else if (_enableLowLevelCheckBox.Checked)
             {
@@ -535,8 +535,8 @@ namespace GameAutomation.UI
         {
             if (_enableBackgroundCheckBox.Checked)
             {
-                _backgroundInputSimulator.SendBackgroundKeyPress(VirtualKeyCode.VK_1);
-                UpdateStatus("Sent 1 key using background method (no focus switch).");
+                _backgroundInputSimulator.SendEnhancedKeyPress(VirtualKeyCode.VK_1);
+                UpdateStatus("Sent 1 key using enhanced background method (no focus switch).");
             }
             else if (_enableLowLevelCheckBox.Checked)
             {
@@ -559,8 +559,8 @@ namespace GameAutomation.UI
         {
             if (_enableBackgroundCheckBox.Checked)
             {
-                _backgroundInputSimulator.SendBackgroundKeyDown(VirtualKeyCode.VK_W);
-                UpdateStatus("Started movement using background method (no focus switch).");
+                _backgroundInputSimulator.SendEnhancedKeyDown(VirtualKeyCode.VK_W);
+                UpdateStatus("Started movement using enhanced background method (no focus switch).");
             }
             else
             {
@@ -574,8 +574,8 @@ namespace GameAutomation.UI
         {
             if (_enableBackgroundCheckBox.Checked)
             {
-                _backgroundInputSimulator.SendBackgroundKeyUp(VirtualKeyCode.VK_W);
-                UpdateStatus("Stopped movement using background method (no focus switch).");
+                _backgroundInputSimulator.SendEnhancedKeyUp(VirtualKeyCode.VK_W);
+                UpdateStatus("Stopped movement using enhanced background method (no focus switch).");
             }
             else
             {
