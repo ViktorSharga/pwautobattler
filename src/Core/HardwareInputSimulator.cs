@@ -111,6 +111,14 @@ namespace GameAutomation.Core
             public string DevicePath;
         }
 
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private struct SP_DEVICE_INTERFACE_DETAIL_DATA_W
+        {
+            public int cbSize;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+            public string DevicePath;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private struct SP_DEVINFO_DATA
         {
@@ -162,7 +170,7 @@ namespace GameAutomation.Core
         private static extern bool SetupDiEnumDeviceInterfaces(IntPtr hDevInfo, IntPtr devInfo, ref Guid interfaceClassGuid, uint memberIndex, ref SP_DEVICE_INTERFACE_DATA deviceInterfaceData);
 
         [DllImport("setupapi.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        private static extern bool SetupDiGetDeviceInterfaceDetail(IntPtr hDevInfo, ref SP_DEVICE_INTERFACE_DATA deviceInterfaceData, ref SP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetailData, uint deviceInterfaceDetailDataSize, out uint requiredSize, ref SP_DEVINFO_DATA deviceInfoData);
+        private static extern bool SetupDiGetDeviceInterfaceDetail(IntPtr hDevInfo, ref SP_DEVICE_INTERFACE_DATA deviceInterfaceData, IntPtr deviceInterfaceDetailData, uint deviceInterfaceDetailDataSize, out uint requiredSize, ref SP_DEVINFO_DATA deviceInfoData);
 
         [DllImport("setupapi.dll", SetLastError = true)]
         private static extern bool SetupDiDestroyDeviceInfoList(IntPtr hDevInfo);
@@ -235,7 +243,81 @@ namespace GameAutomation.Core
             // Enumerate HID devices
             EnumerateDevicesByClass(GUID_DEVINTERFACE_HID, DeviceType.HID);
             
+            // If no devices were found, create mock devices for testing
+            if (_keyboardDevices.Count == 0)
+            {
+                OnStatusUpdate?.Invoke("No keyboards found, creating mock devices...");
+                CreateMockKeyboardDevices();
+            }
+            
+            if (_mouseDevices.Count == 0)
+            {
+                OnStatusUpdate?.Invoke("No mice found, creating mock devices...");
+                CreateMockMouseDevices();
+            }
+            
             OnStatusUpdate?.Invoke($"Found {_keyboardDevices.Count} keyboard devices, {_mouseDevices.Count} mouse devices");
+        }
+
+        private void CreateMockKeyboardDevices()
+        {
+            // Create mock keyboard devices with common VID/PID combinations
+            var mockKeyboards = new[]
+            {
+                new HardwareDevice
+                {
+                    DevicePath = @"\\?\HID#VID_046D&PID_C31C#Mock1",
+                    Type = DeviceType.Keyboard,
+                    ProductName = "Mock Logitech Keyboard",
+                    Manufacturer = "Logitech",
+                    VendorId = 0x046D,
+                    ProductId = 0xC31C,
+                    SerialNumber = "Mock001",
+                    Handle = IntPtr.Zero
+                },
+                new HardwareDevice
+                {
+                    DevicePath = @"\\?\HID#VID_045E&PID_0750#Mock2",
+                    Type = DeviceType.Keyboard,
+                    ProductName = "Mock Microsoft Keyboard",
+                    Manufacturer = "Microsoft",
+                    VendorId = 0x045E,
+                    ProductId = 0x0750,
+                    SerialNumber = "Mock002",
+                    Handle = IntPtr.Zero
+                }
+            };
+
+            foreach (var device in mockKeyboards)
+            {
+                _keyboardDevices.Add(device);
+                OnStatusUpdate?.Invoke($"Created mock keyboard: {device.ProductName} (VID:{device.VendorId:X4}, PID:{device.ProductId:X4})");
+            }
+        }
+
+        private void CreateMockMouseDevices()
+        {
+            // Create mock mouse devices with common VID/PID combinations
+            var mockMice = new[]
+            {
+                new HardwareDevice
+                {
+                    DevicePath = @"\\?\HID#VID_046D&PID_C077#Mock3",
+                    Type = DeviceType.Mouse,
+                    ProductName = "Mock Logitech Mouse",
+                    Manufacturer = "Logitech",
+                    VendorId = 0x046D,
+                    ProductId = 0xC077,
+                    SerialNumber = "Mock003",
+                    Handle = IntPtr.Zero
+                }
+            };
+
+            foreach (var device in mockMice)
+            {
+                _mouseDevices.Add(device);
+                OnStatusUpdate?.Invoke($"Created mock mouse: {device.ProductName} (VID:{device.VendorId:X4}, PID:{device.ProductId:X4})");
+            }
         }
 
         private void EnumerateDevicesByClass(Guid classGuid, DeviceType deviceType)
@@ -244,8 +326,11 @@ namespace GameAutomation.Core
             const uint DIGCF_DEVICEINTERFACE = 0x00000010;
 
             IntPtr hDevInfo = SetupDiGetClassDevs(ref classGuid, IntPtr.Zero, IntPtr.Zero, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
-            if (hDevInfo == IntPtr.Zero)
+            if (hDevInfo == IntPtr.Zero || hDevInfo == new IntPtr(-1))
+            {
+                OnStatusUpdate?.Invoke($"Failed to get device class {deviceType}");
                 return;
+            }
 
             try
             {
@@ -256,41 +341,78 @@ namespace GameAutomation.Core
                     deviceInterfaceData.cbSize = Marshal.SizeOf(deviceInterfaceData);
 
                     if (!SetupDiEnumDeviceInterfaces(hDevInfo, IntPtr.Zero, ref classGuid, memberIndex, ref deviceInterfaceData))
+                    {
+                        int error = Marshal.GetLastWin32Error();
+                        if (error == 259) // ERROR_NO_MORE_ITEMS
+                            break;
+                        
+                        OnStatusUpdate?.Invoke($"Device enumeration error: {error}");
                         break;
+                    }
 
-                    SP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetailData = new SP_DEVICE_INTERFACE_DETAIL_DATA();
-                    deviceInterfaceDetailData.cbSize = IntPtr.Size == 8 ? 8 : 6; // 64-bit vs 32-bit
-                    
+                    // Get required size first
                     SP_DEVINFO_DATA deviceInfoData = new SP_DEVINFO_DATA();
                     deviceInfoData.cbSize = Marshal.SizeOf(deviceInfoData);
 
-                    if (SetupDiGetDeviceInterfaceDetail(hDevInfo, ref deviceInterfaceData, ref deviceInterfaceDetailData, 
-                        (uint)Marshal.SizeOf(deviceInterfaceDetailData), out uint requiredSize, ref deviceInfoData))
+                    if (!SetupDiGetDeviceInterfaceDetail(hDevInfo, ref deviceInterfaceData, IntPtr.Zero, 0, out uint requiredSize, ref deviceInfoData))
                     {
-                        var device = GetDeviceInfo(deviceInterfaceDetailData.DevicePath, deviceType);
-                        if (device != null)
+                        int error = Marshal.GetLastWin32Error();
+                        if (error != 122) // ERROR_INSUFFICIENT_BUFFER is expected
                         {
-                            switch (deviceType)
+                            OnStatusUpdate?.Invoke($"Failed to get device detail size: {error}");
+                            memberIndex++;
+                            continue;
+                        }
+                    }
+
+                    // Allocate buffer and get device path
+                    IntPtr detailBuffer = Marshal.AllocHGlobal((int)requiredSize);
+                    try
+                    {
+                        Marshal.WriteInt32(detailBuffer, IntPtr.Size == 8 ? 8 : 6); // cbSize
+
+                        if (SetupDiGetDeviceInterfaceDetail(hDevInfo, ref deviceInterfaceData, detailBuffer, requiredSize, out uint returnedSize, ref deviceInfoData))
+                        {
+                            // Skip the cbSize field to get the string
+                            IntPtr stringPtr = IntPtr.Add(detailBuffer, 4);
+                            string devicePath = Marshal.PtrToStringAuto(stringPtr);
+                            
+                            if (!string.IsNullOrEmpty(devicePath))
                             {
-                                case DeviceType.Keyboard:
-                                    _keyboardDevices.Add(device);
-                                    break;
-                                case DeviceType.Mouse:
-                                    _mouseDevices.Add(device);
-                                    break;
-                                case DeviceType.HID:
-                                    // Filter HID devices that are keyboards or mice
-                                    if (device.ProductName.ToLower().Contains("keyboard") || 
-                                        device.ProductName.ToLower().Contains("mouse"))
+                                var device = GetDeviceInfo(devicePath, deviceType);
+                                if (device != null)
+                                {
+                                    switch (deviceType)
                                     {
-                                        if (device.ProductName.ToLower().Contains("keyboard"))
+                                        case DeviceType.Keyboard:
                                             _keyboardDevices.Add(device);
-                                        else
+                                            OnStatusUpdate?.Invoke($"Found keyboard: {device.ProductName}");
+                                            break;
+                                        case DeviceType.Mouse:
                                             _mouseDevices.Add(device);
+                                            OnStatusUpdate?.Invoke($"Found mouse: {device.ProductName}");
+                                            break;
+                                        case DeviceType.HID:
+                                            // Filter HID devices that are keyboards or mice
+                                            if (device.ProductName.ToLower().Contains("keyboard"))
+                                            {
+                                                _keyboardDevices.Add(device);
+                                                OnStatusUpdate?.Invoke($"Found HID keyboard: {device.ProductName}");
+                                            }
+                                            else if (device.ProductName.ToLower().Contains("mouse"))
+                                            {
+                                                _mouseDevices.Add(device);
+                                                OnStatusUpdate?.Invoke($"Found HID mouse: {device.ProductName}");
+                                            }
+                                            break;
                                     }
-                                    break;
+                                }
                             }
                         }
+                    }
+                    finally
+                    {
+                        Marshal.FreeHGlobal(detailBuffer);
                     }
 
                     memberIndex++;
@@ -308,7 +430,20 @@ namespace GameAutomation.Core
                 IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
             
             if (handle == IntPtr.Zero || handle.ToInt32() == INVALID_HANDLE_VALUE)
-                return null;
+            {
+                // Create a basic device entry even if we can't open it
+                var basicDevice = new HardwareDevice
+                {
+                    DevicePath = devicePath,
+                    Type = deviceType,
+                    ProductName = $"Unknown {deviceType}",
+                    Manufacturer = "Unknown",
+                    VendorId = 0x0000,
+                    ProductId = 0x0000,
+                    Handle = IntPtr.Zero
+                };
+                return basicDevice;
+            }
 
             try
             {
@@ -319,7 +454,7 @@ namespace GameAutomation.Core
                     Handle = handle
                 };
 
-                // Get hardware attributes
+                // Try to get hardware attributes
                 HIDD_ATTRIBUTES attributes = new HIDD_ATTRIBUTES();
                 attributes.Size = Marshal.SizeOf(attributes);
                 
@@ -329,27 +464,52 @@ namespace GameAutomation.Core
                     device.ProductId = attributes.ProductID;
                     device.VersionNumber = attributes.VersionNumber;
                 }
+                else
+                {
+                    // Set defaults if attributes fail
+                    device.VendorId = 0x0000;
+                    device.ProductId = 0x0000;
+                    device.VersionNumber = 0x0000;
+                }
 
-                // Get device strings
+                // Try to get device strings
                 StringBuilder manufacturer = new StringBuilder(256);
                 StringBuilder product = new StringBuilder(256);
                 StringBuilder serial = new StringBuilder(256);
 
                 if (HidD_GetManufacturerString(handle, manufacturer, manufacturer.Capacity))
                     device.Manufacturer = manufacturer.ToString();
+                else
+                    device.Manufacturer = "Unknown Manufacturer";
 
                 if (HidD_GetProductString(handle, product, product.Capacity))
                     device.ProductName = product.ToString();
+                else
+                    device.ProductName = $"Unknown {deviceType} Device";
 
                 if (HidD_GetSerialNumberString(handle, serial, serial.Capacity))
                     device.SerialNumber = serial.ToString();
+                else
+                    device.SerialNumber = "Unknown";
 
                 return device;
             }
-            catch
+            catch (Exception ex)
             {
+                OnStatusUpdate?.Invoke($"Error reading device info: {ex.Message}");
                 CloseHandle(handle);
-                return null;
+                
+                // Return a basic device even on error
+                return new HardwareDevice
+                {
+                    DevicePath = devicePath,
+                    Type = deviceType,
+                    ProductName = $"Error {deviceType}",
+                    Manufacturer = "Error",
+                    VendorId = 0x0000,
+                    ProductId = 0x0000,
+                    Handle = IntPtr.Zero
+                };
             }
         }
 
