@@ -9,11 +9,6 @@
     <Platform>x64</Platform>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
-    <SelfContained>true</SelfContained>
-    <PublishSingleFile>true</PublishSingleFile>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
-    <PublishTrimmed>false</PublishTrimmed>
     <AssemblyTitle>Game Multi-Window Controller</AssemblyTitle>
     <AssemblyDescription>Automation tool for multi-window game control with mouse mirroring and follow leader functionality</AssemblyDescription>
     <AssemblyCompany>GameAutomation</AssemblyCompany>

@@ -32,65 +32,37 @@ jobs:
       
     - name: Publish self-contained Release (win-x64)
       run: |
-        dotnet publish GameAutomation.csproj `
-          --configuration Release `
-          --runtime win-x64 `
-          --self-contained true `
-          --output ./publish/win-x64 `
-          --verbosity normal `
-          -p:PublishSingleFile=true `
-          -p:IncludeNativeLibrariesForSelfExtract=true `
-          -p:EnableCompressionInSingleFile=true `
-          -p:DebugType=None `
-          -p:DebugSymbols=false
+        dotnet publish GameAutomation.csproj --configuration Release --runtime win-x64 --self-contained true --output ./publish/win-x64 --verbosity normal -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false
           
     - name: Publish framework-dependent Release (win-x64)
       run: |
-        dotnet publish GameAutomation.csproj `
-          --configuration Release `
-          --runtime win-x64 `
-          --self-contained false `
-          --output ./publish/win-x64-framework `
-          --verbosity normal
+        dotnet publish GameAutomation.csproj --configuration Release --runtime win-x64 --self-contained false --output ./publish/win-x64-framework --verbosity normal
           
     - name: List published files (self-contained)
-      run: |
-        Write-Host "Self-contained build contents:"
-        Get-ChildItem -Path "./publish/win-x64" -Recurse | ForEach-Object { 
-          Write-Host "$($_.FullName) - $($_.Length) bytes" 
-        }
+      run: dir "publish\win-x64" /s
         
     - name: List published files (framework-dependent)
-      run: |
-        Write-Host "Framework-dependent build contents:"
-        Get-ChildItem -Path "./publish/win-x64-framework" -Recurse | ForEach-Object { 
-          Write-Host "$($_.FullName) - $($_.Length) bytes" 
-        }
+      run: dir "publish\win-x64-framework" /s
         
     - name: Test executable (self-contained)
+      shell: cmd
       run: |
-        Write-Host "Testing self-contained executable..."
-        $exePath = "./publish/win-x64/GameAutomation.exe"
-        if (Test-Path $exePath) {
-          $fileInfo = Get-Item $exePath
-          Write-Host "Executable size: $($fileInfo.Length) bytes"
-          Write-Host "Executable exists and is ready"
-        } else {
-          Write-Host "ERROR: Executable not found at $exePath"
-          exit 1
-        }
+        if exist "publish\win-x64\GameAutomation.exe" (
+          echo Executable found and ready
+          dir "publish\win-x64\GameAutomation.exe"
+        ) else (
+          echo ERROR: Executable not found
+          exit /b 1
+        )
         
     - name: Create artifacts directory
-      run: |
-        New-Item -ItemType Directory -Force -Path "./artifacts"
+      run: if not exist artifacts mkdir artifacts
         
     - name: Package self-contained release
-      run: |
-        Compress-Archive -Path "./publish/win-x64/*" -DestinationPath "./artifacts/GameAutomation-SelfContained-win-x64.zip"
+      run: powershell Compress-Archive -Path "./publish/win-x64/*" -DestinationPath "./artifacts/GameAutomation-SelfContained-win-x64.zip"
         
     - name: Package framework-dependent release
-      run: |
-        Compress-Archive -Path "./publish/win-x64-framework/*" -DestinationPath "./artifacts/GameAutomation-FrameworkDependent-win-x64.zip"
+      run: powershell Compress-Archive -Path "./publish/win-x64-framework/*" -DestinationPath "./artifacts/GameAutomation-FrameworkDependent-win-x64.zip"
         
     - name: Upload self-contained artifact
       uses: actions/upload-artifact@v4
