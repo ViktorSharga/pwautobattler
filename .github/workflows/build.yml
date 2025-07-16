@@ -22,69 +22,65 @@ jobs:
         dotnet-version: '9.0.x'
         
     - name: Restore dependencies
-      run: dotnet restore autobattler.sln
-      
-    - name: Build Debug
-      run: dotnet build autobattler.sln --configuration Debug --no-restore
+      run: dotnet restore GameAutomation.csproj
       
     - name: Build Release
-      run: dotnet build autobattler.sln --configuration Release --no-restore
+      run: dotnet build GameAutomation.csproj --configuration Release --no-restore
       
-    - name: Publish self-contained Release (win-x64)
+    - name: Publish self-contained executable
+      run: dotnet publish GameAutomation.csproj -c Release -r win-x64 --self-contained true -o publish/self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+      
+    - name: Publish framework-dependent
+      run: dotnet publish GameAutomation.csproj -c Release -r win-x64 --self-contained false -o publish/framework-dependent
+      
+    - name: Verify self-contained build
       run: |
-        dotnet publish GameAutomation.csproj --configuration Release --runtime win-x64 --self-contained true --output ./publish/win-x64 --verbosity normal -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false
-          
-    - name: Publish framework-dependent Release (win-x64)
+        if (Test-Path "publish/self-contained/GameAutomation.exe") {
+          Write-Host "✅ Self-contained executable created successfully"
+          $size = (Get-Item "publish/self-contained/GameAutomation.exe").Length
+          Write-Host "📁 Size: $([math]::Round($size/1MB, 2)) MB"
+        } else {
+          Write-Host "❌ Self-contained executable not found"
+          exit 1
+        }
+      shell: pwsh
+      
+    - name: Verify framework-dependent build  
       run: |
-        dotnet publish GameAutomation.csproj --configuration Release --runtime win-x64 --self-contained false --output ./publish/win-x64-framework --verbosity normal
-          
-    - name: List published files (self-contained)
-      run: dir "publish\win-x64" /s
+        if (Test-Path "publish/framework-dependent/GameAutomation.exe") {
+          Write-Host "✅ Framework-dependent executable created successfully"
+        } else {
+          Write-Host "❌ Framework-dependent executable not found"
+          exit 1
+        }
+      shell: pwsh
         
-    - name: List published files (framework-dependent)
-      run: dir "publish\win-x64-framework" /s
-        
-    - name: Test executable (self-contained)
-      shell: cmd
+    - name: Create release packages
       run: |
-        if exist "publish\win-x64\GameAutomation.exe" (
-          echo Executable found and ready
-          dir "publish\win-x64\GameAutomation.exe"
-        ) else (
-          echo ERROR: Executable not found
-          exit /b 1
-        )
-        
-    - name: Create artifacts directory
-      run: if not exist artifacts mkdir artifacts
-        
-    - name: Package self-contained release
-      run: powershell Compress-Archive -Path "./publish/win-x64/*" -DestinationPath "./artifacts/GameAutomation-SelfContained-win-x64.zip"
-        
-    - name: Package framework-dependent release
-      run: powershell Compress-Archive -Path "./publish/win-x64-framework/*" -DestinationPath "./artifacts/GameAutomation-FrameworkDependent-win-x64.zip"
+        New-Item -ItemType Directory -Force -Path "artifacts"
+        Compress-Archive -Path "publish/self-contained/*" -DestinationPath "artifacts/GameAutomation-SelfContained-win-x64.zip"
+        Compress-Archive -Path "publish/framework-dependent/*" -DestinationPath "artifacts/GameAutomation-FrameworkDependent-win-x64.zip"
+        Write-Host "📦 Packages created successfully"
+      shell: pwsh
         
     - name: Upload self-contained artifact
       uses: actions/upload-artifact@v4
       with:
         name: GameAutomation-SelfContained-win-x64
-        path: ./artifacts/GameAutomation-SelfContained-win-x64.zip
+        path: artifacts/GameAutomation-SelfContained-win-x64.zip
         retention-days: 90
         
     - name: Upload framework-dependent artifact
       uses: actions/upload-artifact@v4
       with:
         name: GameAutomation-FrameworkDependent-win-x64
-        path: ./artifacts/GameAutomation-FrameworkDependent-win-x64.zip
+        path: artifacts/GameAutomation-FrameworkDependent-win-x64.zip
         retention-days: 90
         
     - name: Upload release assets (on release)
       if: github.event_name == 'release'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./artifacts/GameAutomation-SelfContained-win-x64.zip
-        asset_name: GameAutomation-SelfContained-win-x64.zip
-        asset_content_type: application/zip
+        files: |
+          artifacts/GameAutomation-SelfContained-win-x64.zip
+          artifacts/GameAutomation-FrameworkDependent-win-x64.zip
