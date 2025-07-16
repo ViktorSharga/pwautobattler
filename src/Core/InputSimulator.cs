@@ -169,17 +169,42 @@ namespace GameAutomation.Core
             try
             {
                 // Send modifier key down events
-                if (shift) SendKeyDown(windowHandle, VirtualKeyCode.VK_SHIFT);
-                if (ctrl) SendKeyDown(windowHandle, VirtualKeyCode.VK_CONTROL);
-                if (alt) SendKeyDown(windowHandle, VirtualKeyCode.VK_MENU);
+                if (shift) 
+                {
+                    SendKeyDown(windowHandle, VirtualKeyCode.VK_SHIFT);
+                    System.Threading.Thread.Sleep(25);
+                }
+                if (ctrl) 
+                {
+                    SendKeyDown(windowHandle, VirtualKeyCode.VK_CONTROL);
+                    System.Threading.Thread.Sleep(25);
+                }
+                if (alt) 
+                {
+                    SendKeyDown(windowHandle, VirtualKeyCode.VK_MENU);
+                    System.Threading.Thread.Sleep(25);
+                }
 
                 // Send the main key
                 bool result = SendKeyPress(windowHandle, key, method);
+                System.Threading.Thread.Sleep(25);
 
                 // Send modifier key up events
-                if (alt) SendKeyUp(windowHandle, VirtualKeyCode.VK_MENU);
-                if (ctrl) SendKeyUp(windowHandle, VirtualKeyCode.VK_CONTROL);
-                if (shift) SendKeyUp(windowHandle, VirtualKeyCode.VK_SHIFT);
+                if (alt) 
+                {
+                    SendKeyUp(windowHandle, VirtualKeyCode.VK_MENU);
+                    System.Threading.Thread.Sleep(25);
+                }
+                if (ctrl) 
+                {
+                    SendKeyUp(windowHandle, VirtualKeyCode.VK_CONTROL);
+                    System.Threading.Thread.Sleep(25);
+                }
+                if (shift) 
+                {
+                    SendKeyUp(windowHandle, VirtualKeyCode.VK_SHIFT);
+                    System.Threading.Thread.Sleep(25);
+                }
 
                 return result;
             }

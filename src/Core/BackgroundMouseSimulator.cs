@@ -111,7 +111,7 @@ namespace GameAutomation.Core
 
             // Send mouse down and up messages
             SendMessage(windowHandle, (uint)downMsg, IntPtr.Zero, lParam);
-            Thread.Sleep(10); // Small delay between down and up
+            Thread.Sleep(50); // Increased delay between down and up
             SendMessage(windowHandle, (uint)upMsg, IntPtr.Zero, lParam);
 
             return true;
@@ -124,7 +124,7 @@ namespace GameAutomation.Core
 
             // Post mouse down and up messages
             PostMessage(windowHandle, (uint)downMsg, IntPtr.Zero, lParam);
-            Thread.Sleep(10); // Small delay between down and up
+            Thread.Sleep(50); // Increased delay between down and up
             PostMessage(windowHandle, (uint)upMsg, IntPtr.Zero, lParam);
 
             return true;
@@ -139,11 +139,11 @@ namespace GameAutomation.Core
 
             // Send mouse move first
             PostMessage(windowHandle, (uint)WM_MOUSEMOVE, IntPtr.Zero, lParam);
-            Thread.Sleep(5);
+            Thread.Sleep(25);
 
             // Then send click
             PostMessage(windowHandle, (uint)downMsg, IntPtr.Zero, lParam);
-            Thread.Sleep(10);
+            Thread.Sleep(50);
             PostMessage(windowHandle, (uint)upMsg, IntPtr.Zero, lParam);
 
             return true;
@@ -178,7 +178,7 @@ namespace GameAutomation.Core
                     System.Diagnostics.Debug.WriteLine($"Mouse method {method} failed: {ex.Message}");
                 }
                 
-                Thread.Sleep(100); // Small delay between attempts
+                Thread.Sleep(200); // Increased delay between attempts
             }
             
             return false;

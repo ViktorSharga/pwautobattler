@@ -348,17 +348,17 @@ namespace GameAutomation.UI
                 {
                     // Press Shift+1
                     _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_1, method, true, false, false); // Shift+1
-                    System.Threading.Thread.Sleep(100);
+                    System.Threading.Thread.Sleep(300); // Increased delay for key press
                     
                     // Right click on coordinate 1
                     _backgroundMouseSimulator?.SendMouseClick(window.WindowHandle, _coordinate1.X, _coordinate1.Y, 
                         BackgroundMouseSimulator.MouseButton.Right);
-                    System.Threading.Thread.Sleep(100);
+                    System.Threading.Thread.Sleep(250); // Increased delay between clicks
                     
                     // Left click on coordinate 2
                     _backgroundMouseSimulator?.SendMouseClick(window.WindowHandle, _coordinate2.X, _coordinate2.Y, 
                         BackgroundMouseSimulator.MouseButton.Left);
-                    System.Threading.Thread.Sleep(100);
+                    System.Threading.Thread.Sleep(200); // Delay between windows
                 }
                 
                 UpdateStatus($"Follow leader executed for {windows.Count} windows. Coord1: ({_coordinate1.X}, {_coordinate1.Y}), Coord2: ({_coordinate2.X}, {_coordinate2.Y})");
