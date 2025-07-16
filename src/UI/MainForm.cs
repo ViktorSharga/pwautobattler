@@ -54,6 +54,7 @@ namespace GameAutomation.UI
             InitializeComponent();
             SetupHotkeys();
             _hotkeyManager.StartListening();
+            UpdateCoordinateButtons(); // Initialize coordinate button text
             
             // Initialize keyboard hook
             _keyboardHook = new LowLevelKeyboardHook();
@@ -306,8 +307,7 @@ namespace GameAutomation.UI
             _calibrationMode = true;
             _calibratingCoord1 = true;
             _calibrateCoord1Button.Text = "Click target...";
-            _calibrateCoord1Button.Enabled = false;
-            UpdateStatus("Calibration mode: Click on the target location for coordinate 1.");
+            UpdateStatus("Calibration mode: Ctrl+Click on the target location for coordinate 1.");
         }
 
         private void CalibrateCoord2Button_Click(object? sender, EventArgs e)
@@ -315,8 +315,7 @@ namespace GameAutomation.UI
             _calibrationMode = true;
             _calibratingCoord1 = false;
             _calibrateCoord2Button.Text = "Click target...";
-            _calibrateCoord2Button.Enabled = false;
-            UpdateStatus("Calibration mode: Click on the target location for coordinate 2.");
+            UpdateStatus("Calibration mode: Ctrl+Click on the target location for coordinate 2.");
         }
 
         private void FollowLeaderButton_Click(object? sender, EventArgs e)
@@ -326,11 +325,12 @@ namespace GameAutomation.UI
 
         private void FollowLeader()
         {
-            var windows = _registeredWindows.Values.Where(w => w.IsActive).Skip(1).ToList(); // Skip first window (leader)
+            var allWindows = _registeredWindows.Values.Where(w => w.IsActive).OrderBy(w => w.RegistrationSlot).ToList();
+            var followerWindows = allWindows.Skip(1).ToList(); // Skip first window (leader)
             
-            if (windows.Count == 0)
+            if (followerWindows.Count == 0)
             {
-                UpdateStatus("No follower windows found. Register windows first using Ctrl+Shift+1-9/0.");
+                UpdateStatus("No follower windows found. Need at least 2 registered windows.");
                 return;
             }
 
@@ -340,32 +340,79 @@ namespace GameAutomation.UI
                 return;
             }
 
+            UpdateStatus($"Starting follow leader for {followerWindows.Count} windows...");
+
             try
             {
-                var method = _inputSimulator.CurrentMethod;
-                
-                foreach (var window in windows)
+                foreach (var window in followerWindows)
                 {
-                    // Press Shift+1
-                    _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_1, method, true, false, false); // Shift+1
-                    System.Threading.Thread.Sleep(300); // Increased delay for key press
+                    UpdateStatus($"Processing window {window.RegistrationSlot}: {window.WindowTitle}");
                     
-                    // Right click on coordinate 1
-                    _backgroundMouseSimulator?.SendMouseClick(window.WindowHandle, _coordinate1.X, _coordinate1.Y, 
-                        BackgroundMouseSimulator.MouseButton.Right);
-                    System.Threading.Thread.Sleep(250); // Increased delay between clicks
+                    // Step 1: Press Shift+1 (using broadcast since it works)
+                    var singleWindowList = new List<GameWindow> { window };
+                    _inputSimulator.BroadcastToAll(singleWindowList, hwnd => 
+                        _inputSimulator.SendKeyPress(hwnd, VirtualKeyCode.VK_1, _inputSimulator.CurrentMethod, true, false, false));
+                    System.Threading.Thread.Sleep(300);
                     
-                    // Left click on coordinate 2
-                    _backgroundMouseSimulator?.SendMouseClick(window.WindowHandle, _coordinate2.X, _coordinate2.Y, 
-                        BackgroundMouseSimulator.MouseButton.Left);
-                    System.Threading.Thread.Sleep(200); // Delay between windows
+                    // Step 2: Right click on coordinate 1
+                    UpdateStatus($"Attempting right click at ({_coordinate1.X}, {_coordinate1.Y}) on window {window.WindowHandle}");
+                    bool rightClickResult = _backgroundMouseSimulator?.SendMouseClick(window.WindowHandle, _coordinate1.X, _coordinate1.Y, 
+                        BackgroundMouseSimulator.MouseButton.Right, BackgroundMouseSimulator.MouseInputMethod.PostMessage) ?? false;
+                    
+                    // Try alternative method if first fails
+                    if (!rightClickResult)
+                    {
+                        UpdateStatus("PostMessage failed, trying SendMessage method...");
+                        rightClickResult = _backgroundMouseSimulator?.SendMouseClick(window.WindowHandle, _coordinate1.X, _coordinate1.Y, 
+                            BackgroundMouseSimulator.MouseButton.Right, BackgroundMouseSimulator.MouseInputMethod.SendMessage) ?? false;
+                    }
+                    
+                    UpdateStatus($"Right click result: {(rightClickResult ? "Success" : "Failed")}");
+                    System.Threading.Thread.Sleep(250);
+                    
+                    // Step 3: Left click on coordinate 2
+                    UpdateStatus($"Attempting left click at ({_coordinate2.X}, {_coordinate2.Y}) on window {window.WindowHandle}");
+                    bool leftClickResult = _backgroundMouseSimulator?.SendMouseClick(window.WindowHandle, _coordinate2.X, _coordinate2.Y, 
+                        BackgroundMouseSimulator.MouseButton.Left, BackgroundMouseSimulator.MouseInputMethod.PostMessage) ?? false;
+                    
+                    // Try alternative method if first fails
+                    if (!leftClickResult)
+                    {
+                        UpdateStatus("PostMessage failed, trying SendMessage method...");
+                        leftClickResult = _backgroundMouseSimulator?.SendMouseClick(window.WindowHandle, _coordinate2.X, _coordinate2.Y, 
+                            BackgroundMouseSimulator.MouseButton.Left, BackgroundMouseSimulator.MouseInputMethod.SendMessage) ?? false;
+                    }
+                    
+                    UpdateStatus($"Left click result: {(leftClickResult ? "Success" : "Failed")}");
+                    System.Threading.Thread.Sleep(200);
                 }
                 
-                UpdateStatus($"Follow leader executed for {windows.Count} windows. Coord1: ({_coordinate1.X}, {_coordinate1.Y}), Coord2: ({_coordinate2.X}, {_coordinate2.Y})");
+                UpdateStatus($"Follow leader completed for {followerWindows.Count} windows.");
             }
             catch (Exception ex)
             {
                 UpdateStatus($"Error in follow leader: {ex.Message}");
+            }
+        }
+
+        private void UpdateCoordinateButtons()
+        {
+            if (!_coordinate1.IsEmpty)
+            {
+                _calibrateCoord1Button.Text = $"Coord 1: ({_coordinate1.X}, {_coordinate1.Y})";
+            }
+            else
+            {
+                _calibrateCoord1Button.Text = "Calibrate Coord 1";
+            }
+
+            if (!_coordinate2.IsEmpty)
+            {
+                _calibrateCoord2Button.Text = $"Coord 2: ({_coordinate2.X}, {_coordinate2.Y})";
+            }
+            else
+            {
+                _calibrateCoord2Button.Text = "Calibrate Coord 2";
             }
         }
 
@@ -544,18 +591,15 @@ namespace GameAutomation.UI
                 if (_calibratingCoord1)
                 {
                     _coordinate1 = new System.Drawing.Point(e.X, e.Y);
-                    _calibrateCoord1Button.Text = $"Coord 1: ({e.X}, {e.Y})";
-                    _calibrateCoord1Button.Enabled = true;
-                    UpdateStatus($"Coordinate 1 calibrated to ({e.X}, {e.Y})");
+                    UpdateStatus($"Coordinate 1 set to ({e.X}, {e.Y}) - Click 'Calibrate Coord 1' again to change");
                 }
                 else
                 {
                     _coordinate2 = new System.Drawing.Point(e.X, e.Y);
-                    _calibrateCoord2Button.Text = $"Coord 2: ({e.X}, {e.Y})";
-                    _calibrateCoord2Button.Enabled = true;
-                    UpdateStatus($"Coordinate 2 calibrated to ({e.X}, {e.Y})");
+                    UpdateStatus($"Coordinate 2 set to ({e.X}, {e.Y}) - Click 'Calibrate Coord 2' again to change");
                 }
                 _calibrationMode = false;
+                UpdateCoordinateButtons();
                 return;
             }
             
@@ -580,18 +624,15 @@ namespace GameAutomation.UI
                 if (_calibratingCoord1)
                 {
                     _coordinate1 = new System.Drawing.Point(e.X, e.Y);
-                    _calibrateCoord1Button.Text = $"Coord 1: ({e.X}, {e.Y})";
-                    _calibrateCoord1Button.Enabled = true;
-                    UpdateStatus($"Coordinate 1 calibrated to ({e.X}, {e.Y})");
+                    UpdateStatus($"Coordinate 1 set to ({e.X}, {e.Y}) - Click 'Calibrate Coord 1' again to change");
                 }
                 else
                 {
                     _coordinate2 = new System.Drawing.Point(e.X, e.Y);
-                    _calibrateCoord2Button.Text = $"Coord 2: ({e.X}, {e.Y})";
-                    _calibrateCoord2Button.Enabled = true;
-                    UpdateStatus($"Coordinate 2 calibrated to ({e.X}, {e.Y})");
+                    UpdateStatus($"Coordinate 2 set to ({e.X}, {e.Y}) - Click 'Calibrate Coord 2' again to change");
                 }
                 _calibrationMode = false;
+                UpdateCoordinateButtons();
                 return;
             }
             
