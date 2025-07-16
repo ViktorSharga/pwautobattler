@@ -8,6 +8,25 @@
     <Nullable>enable</Nullable>
     <Platform>x64</Platform>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <AssemblyTitle>Game Multi-Window Controller</AssemblyTitle>
+    <AssemblyDescription>Automation tool for multi-window game control with mouse mirroring and follow leader functionality</AssemblyDescription>
+    <AssemblyCompany>GameAutomation</AssemblyCompany>
+    <AssemblyProduct>GameAutomation</AssemblyProduct>
+    <Copyright>Copyright © 2024</Copyright>
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <DebugType>None</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Optimize>true</Optimize>
   </PropertyGroup>
 
 </Project>
