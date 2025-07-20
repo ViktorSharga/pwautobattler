@@ -1,38 +1,78 @@
 {
   "classes": {
+    "Universal": {
+      "spells": [
+        {
+          "id": "AutoAttack",
+          "displayName": "Атака",
+          "cooldown": "00:00:00",
+          "execution": {
+            "keySequence": ["VK_SPACE"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "TpOut",
+          "displayName": "TP Out",
+          "cooldown": "00:05:00",
+          "execution": {
+            "keySequence": ["VK_T"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        }
+      ]
+    },
     "Shaman": {
       "spells": [
         {
-          "id": "shaman_stun",
+          "id": "ShamanStun",
           "displayName": "Стан",
           "cooldown": "00:00:20",
           "execution": {
-            "keySequence": ["VK_1", "VK_F7"],
-            "delays": [50, 0]
+            "keySequence": ["VK_1"],
+            "delays": [0]
           },
           "requirements": {
             "formRequired": null
           }
         },
         {
-          "id": "shaman_heal",
+          "id": "ShamanImmunity",
+          "displayName": "ф имун",
+          "cooldown": "00:00:30",
+          "execution": {
+            "keySequence": ["VK_2"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "ShamanHeal",
           "displayName": "Хил",
           "cooldown": "00:00:30",
           "execution": {
-            "keySequence": ["VK_F4"],
-            "delays": [50]
+            "keySequence": ["VK_3"],
+            "delays": [0]
           },
           "requirements": {
             "formRequired": null
           }
         },
         {
-          "id": "shaman_detarget",
+          "id": "ShamanDetarget",
           "displayName": "Детаргет",
           "cooldown": "00:05:00",
           "execution": {
-            "keySequence": ["VK_F5"],
-            "delays": [50]
+            "keySequence": ["VK_4"],
+            "delays": [0]
           },
           "requirements": {
             "formRequired": null
@@ -40,227 +80,128 @@
         }
       ]
     },
-    "Seeker": {
+    "Priest": {
       "spells": [
         {
-          "id": "seeker_stun",
-          "displayName": "Стан",
-          "cooldown": "00:00:30",
+          "id": "PriestBeam",
+          "displayName": "Луч",
+          "cooldown": "00:00:10",
           "execution": {
-            "keySequence": ["VK_1", "VK_F2"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        },
-        {
-          "id": "seeker_spark",
-          "displayName": "Спарк",
-          "cooldown": "00:00:15",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F3"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        },
-        {
-          "id": "seeker_vortex",
-          "displayName": "Вортекс",
-          "cooldown": "00:00:00",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F4"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        }
-      ]
-    },
-    "Assassin": {
-      "spells": [
-        {
-          "id": "assassin_stealth",
-          "displayName": "Стелс",
-          "cooldown": "00:00:00",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F2"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        },
-        {
-          "id": "assassin_spark",
-          "displayName": "Спарк",
-          "cooldown": "00:00:15",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F3"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        }
-      ]
-    },
-    "Warrior": {
-      "spells": [
-        {
-          "id": "warrior_rage",
-          "displayName": "Берсерк",
-          "cooldown": "00:00:30",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F2"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        },
-        {
-          "id": "warrior_rush",
-          "displayName": "Рывок",
-          "cooldown": "00:00:15",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F3"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        }
-      ]
-    },
-    "Mage": {
-      "spells": [
-        {
-          "id": "mage_sleep",
-          "displayName": "Слип",
-          "cooldown": "00:00:00",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F2"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        },
-        {
-          "id": "mage_heal",
-          "displayName": "Хил",
-          "cooldown": "00:00:00",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F3"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        },
-        {
-          "id": "mage_debuff",
-          "displayName": "Дебафф",
-          "cooldown": "00:00:00",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F4"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        }
-      ]
-    },
-    "Archer": {
-      "spells": [
-        {
-          "id": "archer_fire",
-          "displayName": "Огонь",
-          "cooldown": "00:00:00",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F2"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        },
-        {
-          "id": "archer_stun",
-          "displayName": "Стан",
-          "cooldown": "00:00:30",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F3"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        },
-        {
-          "id": "archer_venom",
-          "displayName": "Яд",
-          "cooldown": "00:00:15",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F4"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        }
-      ]
-    },
-    "Tank": {
-      "spells": [
-        {
-          "id": "tank_stun",
-          "displayName": "Стан",
-          "cooldown": "00:00:30",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F2"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": "human"
-          }
-        },
-        {
-          "id": "tank_sunder",
-          "displayName": "Сандер",
-          "cooldown": "00:00:00",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F3"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": "human"
-          }
-        },
-        {
-          "id": "tank_charge",
-          "displayName": "Чардж",
-          "cooldown": "00:00:15",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F4"],
-            "delays": [50, 0]
+            "keySequence": ["VK_1"],
+            "delays": [0]
           },
           "requirements": {
             "formRequired": "animal"
           }
         },
         {
-          "id": "tank_form_transformation",
-          "displayName": "Форма",
+          "id": "PriestSeal",
+          "displayName": "Печать",
+          "cooldown": "00:00:30",
+          "execution": {
+            "keySequence": ["VK_2"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "PriestSleep",
+          "displayName": "Слип",
+          "cooldown": "00:00:40",
+          "execution": {
+            "keySequence": ["VK_3"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "PriestDebuff",
+          "displayName": "Дебаф",
+          "cooldown": "00:00:03",
+          "execution": {
+            "keySequence": ["VK_4"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "PriestHeal",
+          "displayName": "Хил",
           "cooldown": "00:00:00",
           "execution": {
-            "keySequence": ["VK_1", "VK_F1"],
-            "delays": [50, 0]
+            "keySequence": ["VK_5"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": "human"
+          }
+        },
+        {
+          "id": "PriestForm",
+          "displayName": "Форма",
+          "cooldown": "00:00:15",
+          "execution": {
+            "keySequence": ["VK_F"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          },
+          "isFormTransformation": true
+        }
+      ]
+    },
+    "Tank": {
+      "spells": [
+        {
+          "id": "TankStun",
+          "displayName": "Стан",
+          "cooldown": "00:00:06",
+          "execution": {
+            "keySequence": ["VK_1"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": "human"
+          }
+        },
+        {
+          "id": "TankAgro",
+          "displayName": "Агр",
+          "cooldown": "00:00:03",
+          "execution": {
+            "keySequence": ["VK_2"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": "animal"
+          }
+        },
+        {
+          "id": "TankChi",
+          "displayName": "Чи",
+          "cooldown": "00:00:00",
+          "execution": {
+            "keySequence": ["VK_3"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": "human"
+          }
+        },
+        {
+          "id": "TankForm",
+          "displayName": "Форма",
+          "cooldown": "00:00:02",
+          "execution": {
+            "keySequence": ["VK_F"],
+            "delays": [0]
           },
           "requirements": {
             "formRequired": null
@@ -272,48 +213,84 @@
     "Druid": {
       "spells": [
         {
-          "id": "druid_cyclone",
-          "displayName": "Циклон",
+          "id": "DruidWound",
+          "displayName": "Рана",
           "cooldown": "00:00:30",
           "execution": {
-            "keySequence": ["VK_1", "VK_F2"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": "human"
-          }
-        },
-        {
-          "id": "druid_heal",
-          "displayName": "Хил",
-          "cooldown": "00:00:00",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F3"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": "human"
-          }
-        },
-        {
-          "id": "druid_tornado",
-          "displayName": "Торнадо",
-          "cooldown": "00:00:15",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F4"],
-            "delays": [50, 0]
+            "keySequence": ["VK_1"],
+            "delays": [0]
           },
           "requirements": {
             "formRequired": "animal"
           }
         },
         {
-          "id": "druid_form_transformation",
-          "displayName": "Форма",
-          "cooldown": "00:00:00",
+          "id": "DruidClear",
+          "displayName": "Чистка",
+          "cooldown": "00:00:30",
           "execution": {
-            "keySequence": ["VK_1", "VK_F1"],
-            "delays": [50, 0]
+            "keySequence": ["VK_2"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": "animal"
+          }
+        },
+        {
+          "id": "DruidParasitAnimal",
+          "displayName": "Паразит 4",
+          "cooldown": "00:00:20",
+          "execution": {
+            "keySequence": ["VK_3"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": "animal"
+          }
+        },
+        {
+          "id": "DruidParasitHuman",
+          "displayName": "Паразит 2",
+          "cooldown": "00:00:20",
+          "execution": {
+            "keySequence": ["VK_4"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": "human"
+          }
+        },
+        {
+          "id": "DruidStun",
+          "displayName": "Стан",
+          "cooldown": "00:00:12",
+          "execution": {
+            "keySequence": ["VK_5"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": "human"
+          }
+        },
+        {
+          "id": "DruidSara",
+          "displayName": "Сара",
+          "cooldown": "00:00:30",
+          "execution": {
+            "keySequence": ["VK_6"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": "human"
+          }
+        },
+        {
+          "id": "DruidForm",
+          "displayName": "Форма",
+          "cooldown": "00:00:06",
+          "execution": {
+            "keySequence": ["VK_F"],
+            "delays": [0]
           },
           "requirements": {
             "formRequired": null
@@ -322,64 +299,63 @@
         }
       ]
     },
-    "Priest": {
+    "Seeker": {
       "spells": [
         {
-          "id": "priest_beam",
-          "displayName": "Бим",
-          "cooldown": "00:00:00",
-          "execution": {
-            "keySequence": ["VK_1", "VK_F2"],
-            "delays": [50, 0]
-          },
-          "requirements": {
-            "formRequired": null
-          }
-        },
-        {
-          "id": "priest_seal",
-          "displayName": "Сил",
+          "id": "SeekerSeal",
+          "displayName": "Печать",
           "cooldown": "00:00:15",
           "execution": {
-            "keySequence": ["VK_1", "VK_F3"],
-            "delays": [50, 0]
+            "keySequence": ["VK_1"],
+            "delays": [0]
           },
           "requirements": {
             "formRequired": null
           }
         },
         {
-          "id": "priest_sleep",
-          "displayName": "Слип",
+          "id": "SeekerSpark",
+          "displayName": "Запал",
           "cooldown": "00:00:30",
           "execution": {
-            "keySequence": ["VK_1", "VK_F4"],
-            "delays": [50, 0]
+            "keySequence": ["VK_2"],
+            "delays": [0]
           },
           "requirements": {
             "formRequired": null
           }
         },
         {
-          "id": "priest_debuff",
-          "displayName": "Дебафф",
-          "cooldown": "00:00:00",
+          "id": "SeekerStun",
+          "displayName": "Стан",
+          "cooldown": "00:01:30",
           "execution": {
-            "keySequence": ["VK_1", "VK_F5"],
-            "delays": [50, 0]
+            "keySequence": ["VK_3"],
+            "delays": [0]
           },
           "requirements": {
             "formRequired": null
           }
         },
         {
-          "id": "priest_heal",
-          "displayName": "Хил",
-          "cooldown": "00:00:00",
+          "id": "SeekerRefresh",
+          "displayName": "Откат",
+          "cooldown": "00:03:00",
           "execution": {
-            "keySequence": ["VK_1", "VK_F6"],
-            "delays": [50, 0],
-            "modifiers": ["shift"]
+            "keySequence": ["VK_4"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "SeekerDisarm",
+          "displayName": "Дизарм",
+          "cooldown": "00:00:15",
+          "execution": {
+            "keySequence": ["VK_5"],
+            "delays": [0]
           },
           "requirements": {
             "formRequired": null
@@ -387,26 +363,266 @@
         }
       ]
     },
-    "Universal": {
+    "Assassin": {
       "spells": [
         {
-          "id": "autoattack",
-          "displayName": "Атака",
-          "cooldown": "00:00:00",
+          "id": "AssassinOtvod",
+          "displayName": "Отвод",
+          "cooldown": "00:00:30",
           "execution": {
-            "keySequence": ["VK_1", "VK_3"],
-            "delays": [50, 0]
+            "keySequence": ["VK_1"],
+            "delays": [0]
           },
           "requirements": {
             "formRequired": null
           }
         },
         {
-          "id": "tp_out",
-          "displayName": "ТП",
-          "cooldown": "00:00:00",
+          "id": "AssassinStun",
+          "displayName": "Стан",
+          "cooldown": "00:03:00",
+          "execution": {
+            "keySequence": ["VK_2"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "AssassinPrison",
+          "displayName": "Тюрма",
+          "cooldown": "00:00:30",
           "execution": {
             "keySequence": ["VK_3"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "AssassinSalo",
+          "displayName": "Сало",
+          "cooldown": "00:00:08",
+          "execution": {
+            "keySequence": ["VK_4"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "AssassinSleep",
+          "displayName": "Слип",
+          "cooldown": "00:00:15",
+          "execution": {
+            "keySequence": ["VK_5"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "AssassinChi",
+          "displayName": "Чи",
+          "cooldown": "00:01:00",
+          "execution": {
+            "keySequence": ["VK_6"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "AssassinObman",
+          "displayName": "Обман",
+          "cooldown": "00:03:00",
+          "execution": {
+            "keySequence": ["VK_7"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "AssassinPtp",
+          "displayName": "ПТП",
+          "cooldown": "00:01:30",
+          "execution": {
+            "keySequence": ["VK_8"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        }
+      ]
+    },
+    "Warrior": {
+      "spells": [
+        {
+          "id": "WarriorDraki",
+          "displayName": "Драки",
+          "cooldown": "00:00:30",
+          "execution": {
+            "keySequence": ["VK_1"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "WarriorParal",
+          "displayName": "Парал",
+          "cooldown": "00:00:15",
+          "execution": {
+            "keySequence": ["VK_2"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "WarriorStun",
+          "displayName": "Стан",
+          "cooldown": "00:00:15",
+          "execution": {
+            "keySequence": ["VK_3"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "WarriorDisarm",
+          "displayName": "Дизарм",
+          "cooldown": "00:01:00",
+          "execution": {
+            "keySequence": ["VK_4"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "WarriorAlmaz",
+          "displayName": "Аура",
+          "cooldown": "00:10:00",
+          "execution": {
+            "keySequence": ["VK_5"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        }
+      ]
+    },
+    "Mage": {
+      "spells": [
+        {
+          "id": "MageDebuf",
+          "displayName": "Дебаф",
+          "cooldown": "00:00:01",
+          "execution": {
+            "keySequence": ["VK_1"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "MageSalo",
+          "displayName": "Сало",
+          "cooldown": "00:00:20",
+          "execution": {
+            "keySequence": ["VK_2"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "MageStun",
+          "displayName": "Гора",
+          "cooldown": "00:00:30",
+          "execution": {
+            "keySequence": ["VK_3"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "MagePoison",
+          "displayName": "Яд",
+          "cooldown": "00:00:01",
+          "execution": {
+            "keySequence": ["VK_4"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        }
+      ]
+    },
+    "Archer": {
+      "spells": [
+        {
+          "id": "ArcherStun",
+          "displayName": "Стан",
+          "cooldown": "00:00:15",
+          "execution": {
+            "keySequence": ["VK_1"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "ArcherParal",
+          "displayName": "Рут",
+          "cooldown": "00:00:15",
+          "execution": {
+            "keySequence": ["VK_2"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "ArcherBlood",
+          "displayName": "Кровь",
+          "cooldown": "00:02:00",
+          "execution": {
+            "keySequence": ["VK_3"],
+            "delays": [0]
+          },
+          "requirements": {
+            "formRequired": null
+          }
+        },
+        {
+          "id": "ArcherRoscol",
+          "displayName": "Роскол",
+          "cooldown": "00:00:15",
+          "execution": {
+            "keySequence": ["VK_4"],
             "delays": [0]
           },
           "requirements": {
