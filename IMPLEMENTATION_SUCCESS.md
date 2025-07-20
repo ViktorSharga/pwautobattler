@@ -62,9 +62,7 @@ private bool SendKeyPressKeyboardEventOptimized(IntPtr windowHandle, VirtualKeyC
 #### 3. HotkeyManager (`src/Core/HotkeyManager.cs`)
 - **Purpose**: Global hotkey registration and handling
 - **Hotkeys**:
-  - `Ctrl+Shift+1` - Register window to slot 1
-  - `Ctrl+Shift+2` - Register window to slot 2
-  - `Ctrl+Shift+3` - Register window to slot 3
+  - `Ctrl+Shift+1-9/0` - Register window to slots 1-10
 
 #### 4. MainForm (`src/UI/MainForm.cs`)
 - **Purpose**: User interface and application control
@@ -206,14 +204,111 @@ This application is designed for legitimate game automation and testing purposes
 ### Anti-Cheat Compatibility
 The KeyboardEventOptimized method simulates physical keyboard input and should be compatible with most anti-cheat systems, but users should verify compliance with their game's terms of service.
 
+## Current Working Features (Updated 2025)
+
+### 1. Broadcast Mode ✅
+**Purpose**: Automatically send keystrokes 1-9 to all registered windows when pressed
+**Implementation**: 
+- Global keyboard hook listens for keys 1-9
+- Temporarily disables hook during broadcast to prevent infinite loops
+- Uses selected input method (KeyboardEventOptimized recommended)
+- Returns focus to window 1 or original window after broadcast
+
+**Technical Details**:
+```csharp
+// In MainForm.cs - OnGlobalKeyDown
+private void OnGlobalKeyDown(object? sender, Keys key)
+{
+    if (!_broadcastMode) return;
+    
+    int keyNumber = key switch {
+        Keys.D1 => 1, Keys.D2 => 2, Keys.D3 => 3, // ... Keys.D9 => 9
+        _ => 0
+    };
+    
+    if (keyNumber > 0) {
+        _keyboardHook?.StopListening(); // Prevent infinite loop
+        BroadcastKeyToAllWindows(keyNumber);
+        if (_broadcastMode) _keyboardHook?.StartListening();
+    }
+}
+```
+
+### 2. Mouse Mirroring (Ctrl+Click) ✅
+**Purpose**: Mirror Ctrl+Click mouse events to all registered windows
+**Implementation**:
+- Low-level mouse hook detects Ctrl+Click combinations
+- Converts screen coordinates to client coordinates for each window
+- Uses BackgroundMouseSimulator for message-based clicking
+- Supports both left and right click mirroring
+
+**Technical Details**:
+```csharp
+// In MouseHook.cs - HookCallback
+bool ctrlPressed = (GetAsyncKeyState(0x11) & 0x8000) != 0;
+if (ctrlPressed && wParam == (IntPtr)WM_LBUTTONDOWN) {
+    CtrlLeftClick?.Invoke(this, new MouseEventArgs(hookStruct.pt.x, hookStruct.pt.y));
+}
+
+// In MainForm.cs - OnCtrlLeftClick  
+_backgroundMouseSimulator?.BroadcastMouseClick(windows, e.X, e.Y, 
+    BackgroundMouseSimulator.MouseButton.Left);
+```
+
+### 3. Shift+Click Double-Click ✅
+**Purpose**: Send proper double-click events to all windows when Shift+Click is performed
+**Implementation**:
+- Enhanced mouse hook detects Shift+Click combinations
+- Sends proper Windows double-click message sequence
+- Uses WM_LBUTTONDBLCLK instead of two single clicks
+- Proper timing ensures game recognition
+
+**Technical Details**:
+```csharp
+// In BackgroundMouseSimulator.cs - SendMouseDoubleClickPostMessage
+private bool SendMouseDoubleClickPostMessage(IntPtr windowHandle, IntPtr lParam, MouseButton button)
+{
+    var downMsg = button == MouseButton.Left ? WM_LBUTTONDOWN : WM_RBUTTONDOWN;
+    var upMsg = button == MouseButton.Left ? WM_LBUTTONUP : WM_RBUTTONUP;
+    var dblclkMsg = button == MouseButton.Left ? WM_LBUTTONDBLCLK : WM_RBUTTONDBLCLK;
+
+    // Proper double-click sequence: DOWN -> UP -> DBLCLK -> UP
+    PostMessage(windowHandle, (uint)downMsg, IntPtr.Zero, lParam);
+    Thread.Sleep(10);
+    PostMessage(windowHandle, (uint)upMsg, IntPtr.Zero, lParam);
+    Thread.Sleep(10);
+    PostMessage(windowHandle, (uint)dblclkMsg, IntPtr.Zero, lParam);
+    Thread.Sleep(10);
+    PostMessage(windowHandle, (uint)upMsg, IntPtr.Zero, lParam);
+    return true;
+}
+```
+
+### 4. 10-Window Support ✅
+**Purpose**: Support up to 10 simultaneous game windows
+**Implementation**:
+- Registration slots 1-10 mapped to Ctrl+Shift+1-9/0
+- Dictionary-based window storage with slot numbers as keys
+- UI displays all 10 slots with active/inactive status
+- Validation ensures only active windows receive commands
+
+### Background Input Analysis
+**Status**: Limited reliability due to Windows security and game input handling
+**Working Methods**: 
+- PostMessage: Basic functionality, some games ignore
+- SendMessage: Synchronous, better reliability than PostMessage
+- DirectClient: Enhanced coordinate handling
+
+**Recommended Approach**: Continue using KeyboardEventOptimized for keyboard input (requires focus switching) and background mouse methods for mouse input where possible.
+
 ## Future Enhancements
 
 ### Potential Improvements
-1. **Configuration File**: Save/load window registrations
-2. **Macro Recording**: Record and replay complex input sequences
-3. **Plugin System**: Support for game-specific automation modules
-4. **Remote Control**: Web interface for remote management
-5. **Profile Management**: Multiple configuration profiles
+1. **Auto-scan Process Detection**: Automatically find and assign ElementClient processes
+2. **Individual Window Testing**: Test connection buttons for each registered slot
+3. **Configuration File**: Save/load window registrations
+4. **Macro Recording**: Record and replay complex input sequences
+5. **Plugin System**: Support for game-specific automation modules
 
 ### Code Maintenance
 - Regular testing with game updates

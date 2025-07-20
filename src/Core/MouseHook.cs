@@ -20,6 +20,7 @@ namespace GameAutomation.Core
 
         public event EventHandler<MouseEventArgs>? CtrlLeftClick;
         public event EventHandler<MouseEventArgs>? CtrlRightClick;
+        public event EventHandler<MouseEventArgs>? ShiftLeftClick;
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
@@ -104,19 +105,27 @@ namespace GameAutomation.Core
         {
             if (nCode >= HC_ACTION)
             {
-                // Check if Ctrl key is pressed
+                // Check if Ctrl or Shift key is pressed
                 bool ctrlPressed = (GetAsyncKeyState(0x11) & 0x8000) != 0; // VK_CONTROL
+                bool shiftPressed = (GetAsyncKeyState(0x10) & 0x8000) != 0; // VK_SHIFT
 
-                if (ctrlPressed)
+                if (ctrlPressed || shiftPressed)
                 {
                     var hookStruct = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
                     var mouseArgs = new MouseEventArgs(hookStruct.pt.x, hookStruct.pt.y);
 
                     if (wParam == (IntPtr)WM_LBUTTONDOWN)
                     {
-                        CtrlLeftClick?.Invoke(this, mouseArgs);
+                        if (ctrlPressed)
+                        {
+                            CtrlLeftClick?.Invoke(this, mouseArgs);
+                        }
+                        else if (shiftPressed)
+                        {
+                            ShiftLeftClick?.Invoke(this, mouseArgs);
+                        }
                     }
-                    else if (wParam == (IntPtr)WM_RBUTTONDOWN)
+                    else if (wParam == (IntPtr)WM_RBUTTONDOWN && ctrlPressed)
                     {
                         CtrlRightClick?.Invoke(this, mouseArgs);
                     }

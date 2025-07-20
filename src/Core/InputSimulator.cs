@@ -25,7 +25,15 @@ namespace GameAutomation.Core
         VK_9 = 0x39,
         VK_SHIFT = 0x10,
         VK_CONTROL = 0x11,
-        VK_MENU = 0x12
+        VK_MENU = 0x12,
+        VK_F1 = 0x70,
+        VK_F2 = 0x71,
+        VK_F3 = 0x72,
+        VK_F4 = 0x73,
+        VK_F5 = 0x74,
+        VK_F6 = 0x75,
+        VK_F7 = 0x76,
+        VK_F8 = 0x77
     }
 
     public enum InputMethod

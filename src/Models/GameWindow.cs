@@ -10,6 +10,9 @@ namespace GameAutomation.Models
         public int RegistrationSlot { get; set; }
         public bool IsActive { get; set; }
         public DateTime RegisteredAt { get; set; }
+        public GameClass CharacterClass { get; set; } = GameClass.None;
+        public bool IsMainWindow { get; set; } = false;
+        public bool IsInAnimalForm { get; set; } = false; // Track transformation state
 
         public GameWindow()
         {
@@ -18,7 +21,9 @@ namespace GameAutomation.Models
 
         public override string ToString()
         {
-            return $"[{RegistrationSlot}] PID: {ProcessId} - {WindowTitle}";
+            var classText = CharacterClass == GameClass.None ? "" : $" ({CharacterClass})";
+            var mainText = IsMainWindow ? " [MAIN]" : "";
+            return $"[{RegistrationSlot}] PID: {ProcessId} - {WindowTitle}{classText}{mainText}";
         }
     }
 }
