@@ -3,7 +3,11 @@
     "allow": [
       "Bash(dotnet build)",
       "Bash(msbuild:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git checkout:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

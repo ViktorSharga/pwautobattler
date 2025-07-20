@@ -2,7 +2,7 @@ using System;
 
 namespace GameAutomation.Models
 {
-    public class GameWindow
+    public class GameWindow : IGameWindow
     {
         public int ProcessId { get; set; }
         public IntPtr WindowHandle { get; set; }
@@ -11,6 +11,11 @@ namespace GameAutomation.Models
         public bool IsActive { get; set; }
         public DateTime RegisteredAt { get; set; }
         public GameClass CharacterClass { get; set; } = GameClass.None;
+        
+        // IGameWindow interface implementation
+        public int SlotNumber => RegistrationSlot;
+        public GameClass GameClass => CharacterClass;
+        public bool IsValid => WindowHandle != IntPtr.Zero && !string.IsNullOrEmpty(WindowTitle);
         public bool IsMainWindow { get; set; } = false;
         public bool IsInAnimalForm { get; set; } = false; // Track transformation state
 
