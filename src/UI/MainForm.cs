@@ -28,6 +28,7 @@ namespace GameAutomation.UI
         private Panel _classTablePanel = null!;
         private readonly CooldownManager _cooldownManager = new();
         private System.Windows.Forms.Timer _cooldownTimer = null!;
+        private DateTime _lastTableUpdate = DateTime.MinValue;
         private Button _refreshButton = null!;
         private Button _autoScanButton = null!;
         private Button _sendQButton = null!;
@@ -257,6 +258,13 @@ namespace GameAutomation.UI
                 BackColor = System.Drawing.Color.WhiteSmoke,
                 AutoSize = false // We'll manage size manually
             };
+            
+            // Enable double buffering to reduce flickering
+            typeof(Panel).InvokeMember("DoubleBuffered",
+                System.Reflection.BindingFlags.SetProperty | 
+                System.Reflection.BindingFlags.Instance | 
+                System.Reflection.BindingFlags.NonPublic,
+                null, _classTablePanel, new object[] { true });
             
             // Status
             _statusLabel = new Label
@@ -538,8 +546,34 @@ namespace GameAutomation.UI
 
         private void UpdateClassTable()
         {
+            // Throttle updates to prevent excessive redraws (max 10 per second)
+            var now = DateTime.Now;
+            if ((now - _lastTableUpdate).TotalMilliseconds < 100)
+            {
+                return;
+            }
+            _lastTableUpdate = now;
+            
+            // Suspend layout to prevent flickering
+            _classTablePanel.SuspendLayout();
+            
+            try
+            {
+                UpdateClassTableInternal();
+            }
+            finally
+            {
+                _classTablePanel.ResumeLayout(true);
+            }
+        }
+        
+        private void UpdateClassTableInternal()
+        {
             // Clear existing controls
             _classTablePanel.Controls.Clear();
+            
+            // Create list to batch add controls for better performance
+            var controlsToAdd = new List<Control>();
             
             // Get windows with assigned classes (not None) and sort by slot
             var classWindows = _registeredWindows
@@ -610,21 +644,27 @@ namespace GameAutomation.UI
                     Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold),
                     TextAlign = System.Drawing.ContentAlignment.MiddleLeft
                 };
-                _classTablePanel.Controls.Add(classLabel);
+                controlsToAdd.Add(classLabel);
                 
                 // Column 2: AutoAttack Button
-                CreateActionButton(window, GameActions.AutoAttack, new System.Drawing.Point(100, currentY + 3));
+                CreateActionButton(window, GameActions.AutoAttack, new System.Drawing.Point(100, currentY + 3), controlsToAdd);
                 
                 // Column 3: Class-Specific Spells Grid (3 columns wide) - filter by form
                 var availableSpells = FilterSpellsByForm(window, classSpecificActions);
                 var filteredSpellRows = Math.Max(1, (int)Math.Ceiling(availableSpells.Count / 3.0));
-                CreateSpellGrid(window, availableSpells, new System.Drawing.Point(180, currentY + 3), filteredSpellRows);
+                CreateSpellGrid(window, availableSpells, new System.Drawing.Point(180, currentY + 3), filteredSpellRows, controlsToAdd);
                 
                 // Column 4: TP Out Button (rightmost)
-                CreateActionButton(window, GameActions.TpOut, new System.Drawing.Point(580, currentY + 3));
+                CreateActionButton(window, GameActions.TpOut, new System.Drawing.Point(580, currentY + 3), controlsToAdd);
                 
                 // Move to next row position
                 currentY += rowHeight;
+            }
+            
+            // Batch add all controls at once for better performance
+            if (controlsToAdd.Count > 0)
+            {
+                _classTablePanel.Controls.AddRange(controlsToAdd.ToArray());
             }
             
             // Resize the table panel to fit all content
@@ -635,7 +675,7 @@ namespace GameAutomation.UI
             _statusLabel.Location = new System.Drawing.Point(10, _classTablePanel.Location.Y + tableHeight + 10);
         }
         
-        private void CreateActionButton(GameWindow window, GameAction action, System.Drawing.Point location)
+        private void CreateActionButton(GameWindow window, GameAction action, System.Drawing.Point location, List<Control>? controlsToAdd = null)
         {
             var button = new Button
             {
@@ -655,7 +695,15 @@ namespace GameAutomation.UI
                 button.Enabled = false;
             }
             
-            _classTablePanel.Controls.Add(button);
+            // Add button to panel or batch list
+            if (controlsToAdd != null)
+            {
+                controlsToAdd.Add(button);
+            }
+            else
+            {
+                _classTablePanel.Controls.Add(button);
+            }
             
             // Only create cooldown label for actions that have cooldowns
             if (action.Cooldown > TimeSpan.Zero)
@@ -670,11 +718,19 @@ namespace GameAutomation.UI
                     TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
                     Tag = new Tuple<GameWindow, GameAction>(window, action)
                 };
-                _classTablePanel.Controls.Add(cooldownLabel);
+                
+                if (controlsToAdd != null)
+                {
+                    controlsToAdd.Add(cooldownLabel);
+                }
+                else
+                {
+                    _classTablePanel.Controls.Add(cooldownLabel);
+                }
             }
         }
         
-        private void CreateSpellGrid(GameWindow window, List<GameAction> spells, System.Drawing.Point startLocation, int rows)
+        private void CreateSpellGrid(GameWindow window, List<GameAction> spells, System.Drawing.Point startLocation, int rows, List<Control>? controlsToAdd = null)
         {
             const int buttonWidth = 70; // Increased from 60 to 70 for better text display
             const int buttonHeight = 28;
@@ -727,7 +783,15 @@ namespace GameAutomation.UI
                     button.Enabled = false;
                 }
                 
-                _classTablePanel.Controls.Add(button);
+                // Add button to panel or batch list
+                if (controlsToAdd != null)
+                {
+                    controlsToAdd.Add(button);
+                }
+                else
+                {
+                    _classTablePanel.Controls.Add(button);
+                }
                 
                 // Create cooldown label for spell
                 var cooldownLabel = new Label
@@ -740,7 +804,15 @@ namespace GameAutomation.UI
                     TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
                     Tag = new Tuple<GameWindow, GameAction>(window, spell)
                 };
-                _classTablePanel.Controls.Add(cooldownLabel);
+                
+                if (controlsToAdd != null)
+                {
+                    controlsToAdd.Add(cooldownLabel);
+                }
+                else
+                {
+                    _classTablePanel.Controls.Add(cooldownLabel);
+                }
             }
         }
         
@@ -1226,172 +1298,57 @@ namespace GameAutomation.UI
         
         private void ExecutePriestBeam(GameWindow window)
         {
-            // Find main window
-            var mainWindow = _registeredWindows.Values.FirstOrDefault(w => w.IsMainWindow && w.IsActive);
-            
-            try
+            ExecuteSpellSafely(window, "PRIEST BEAM", () =>
             {
-                // Focus target window
-                SetForegroundWindow(window.WindowHandle);
-                System.Threading.Thread.Sleep(50); // Delay after window activation
-                
                 // Press 1, wait 50ms, then press F2
                 _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_1, _inputSimulator.CurrentMethod);
                 System.Threading.Thread.Sleep(50);
                 _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_F2, _inputSimulator.CurrentMethod);
-                
-                // Return to main window if exists
-                if (mainWindow != null && mainWindow != window)
-                {
-                    System.Threading.Thread.Sleep(50);
-                    SetForegroundWindow(mainWindow.WindowHandle);
-                    UpdateStatus($"Executed BEAM for {window.CharacterClass} and returned to main window.");
-                }
-                else
-                {
-                    UpdateStatus($"Executed BEAM for {window.CharacterClass}.");
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"Failed to execute BEAM: {ex.Message}");
-            }
+            });
         }
         
         private void ExecutePriestSeal(GameWindow window)
         {
-            // Find main window
-            var mainWindow = _registeredWindows.Values.FirstOrDefault(w => w.IsMainWindow && w.IsActive);
-            
-            try
+            ExecuteSpellSafely(window, "PRIEST SEAL", () =>
             {
-                // Focus target window
-                SetForegroundWindow(window.WindowHandle);
-                System.Threading.Thread.Sleep(50); // Delay after window activation
-                
                 // Press 1, wait 50ms, then press F3
                 _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_1, _inputSimulator.CurrentMethod);
                 System.Threading.Thread.Sleep(50);
                 _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_F3, _inputSimulator.CurrentMethod);
-                
-                // Return to main window if exists
-                if (mainWindow != null && mainWindow != window)
-                {
-                    System.Threading.Thread.Sleep(50);
-                    SetForegroundWindow(mainWindow.WindowHandle);
-                    UpdateStatus($"Executed SEAL for {window.CharacterClass} and returned to main window.");
-                }
-                else
-                {
-                    UpdateStatus($"Executed SEAL for {window.CharacterClass}.");
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"Failed to execute SEAL: {ex.Message}");
-            }
+            });
         }
         
         private void ExecutePriestSleep(GameWindow window)
         {
-            // Find main window
-            var mainWindow = _registeredWindows.Values.FirstOrDefault(w => w.IsMainWindow && w.IsActive);
-            
-            try
+            ExecuteSpellSafely(window, "PRIEST SLEEP", () =>
             {
-                // Focus target window
-                SetForegroundWindow(window.WindowHandle);
-                System.Threading.Thread.Sleep(50); // Delay after window activation
-                
                 // Press 1, wait 50ms, then press F4
                 _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_1, _inputSimulator.CurrentMethod);
                 System.Threading.Thread.Sleep(50);
                 _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_F4, _inputSimulator.CurrentMethod);
-                
-                // Return to main window if exists
-                if (mainWindow != null && mainWindow != window)
-                {
-                    System.Threading.Thread.Sleep(50);
-                    SetForegroundWindow(mainWindow.WindowHandle);
-                    UpdateStatus($"Executed SLEEP for {window.CharacterClass} and returned to main window.");
-                }
-                else
-                {
-                    UpdateStatus($"Executed SLEEP for {window.CharacterClass}.");
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"Failed to execute SLEEP: {ex.Message}");
-            }
+            });
         }
         
         private void ExecutePriestDebuff(GameWindow window)
         {
-            // Find main window
-            var mainWindow = _registeredWindows.Values.FirstOrDefault(w => w.IsMainWindow && w.IsActive);
-            
-            try
+            ExecuteSpellSafely(window, "PRIEST DEBUFF", () =>
             {
-                // Focus target window
-                SetForegroundWindow(window.WindowHandle);
-                System.Threading.Thread.Sleep(50); // Delay after window activation
-                
                 // Press 1, wait 50ms, then press F5
                 _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_1, _inputSimulator.CurrentMethod);
                 System.Threading.Thread.Sleep(50);
                 _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_F5, _inputSimulator.CurrentMethod);
-                
-                // Return to main window if exists
-                if (mainWindow != null && mainWindow != window)
-                {
-                    System.Threading.Thread.Sleep(50);
-                    SetForegroundWindow(mainWindow.WindowHandle);
-                    UpdateStatus($"Executed DEBUFF for {window.CharacterClass} and returned to main window.");
-                }
-                else
-                {
-                    UpdateStatus($"Executed DEBUFF for {window.CharacterClass}.");
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"Failed to execute DEBUFF: {ex.Message}");
-            }
+            });
         }
         
         private void ExecutePriestHeal(GameWindow window)
         {
-            // Find main window
-            var mainWindow = _registeredWindows.Values.FirstOrDefault(w => w.IsMainWindow && w.IsActive);
-            
-            try
+            ExecuteSpellSafely(window, "PRIEST HEAL", () =>
             {
-                // Focus target window
-                SetForegroundWindow(window.WindowHandle);
-                System.Threading.Thread.Sleep(50); // Delay after window activation
-                
                 // Press Shift+1, wait 50ms, then press F6
                 _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_1, _inputSimulator.CurrentMethod, true, false, false); // Shift + 1
                 System.Threading.Thread.Sleep(50);
                 _inputSimulator.SendKeyPress(window.WindowHandle, VirtualKeyCode.VK_F6, _inputSimulator.CurrentMethod);
-                
-                // Return to main window if exists
-                if (mainWindow != null && mainWindow != window)
-                {
-                    System.Threading.Thread.Sleep(50);
-                    SetForegroundWindow(mainWindow.WindowHandle);
-                    UpdateStatus($"Executed HEAL for {window.CharacterClass} and returned to main window.");
-                }
-                else
-                {
-                    UpdateStatus($"Executed HEAL for {window.CharacterClass}.");
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"Failed to execute HEAL: {ex.Message}");
-            }
+            });
         }
         
         private void ExecuteTankStun(GameWindow window)
