@@ -27,7 +27,7 @@ namespace GameAutomation.Examples
         private Button _createObjectsButton = null!;
         private Button _cleanupButton = null!;
         private Button _optimizeMemoryButton = null!;
-        private Timer _updateTimer = null!;
+        private System.Windows.Forms.Timer _updateTimer = null!;
 
         private int _objectsCreated = 0;
         private long _initialMemory = 0;
@@ -67,7 +67,7 @@ namespace GameAutomation.Examples
             LayoutControls();
 
             // Update timer for real-time stats
-            _updateTimer = new Timer();
+            _updateTimer = new System.Windows.Forms.Timer();
             _updateTimer.Interval = 1000; // Update every second
             _updateTimer.Tick += UpdateTimer_Tick;
             _updateTimer.Start();

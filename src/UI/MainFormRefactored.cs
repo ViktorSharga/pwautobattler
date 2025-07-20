@@ -215,7 +215,7 @@ namespace GameAutomation.UI
             }
         }
 
-        private void OnGlobalKeyDown(object? sender, LowLevelKeyboardHook.KeyPressedEventArgs e)
+        private void OnGlobalKeyDown(object? sender, Keys e)
         {
             if (!_inputMethodController.BroadcastMode) return;
 
@@ -223,7 +223,7 @@ namespace GameAutomation.UI
             var activeWindows = _gameWindowController.GetActiveWindows();
             if (activeWindows.Length == 0) return;
 
-            var key = e.Key;
+            var key = e;
             if (key >= Keys.D1 && key <= Keys.D9)
             {
                 var keyCode = VirtualKeyCode.VK_1 + (key - Keys.D1);

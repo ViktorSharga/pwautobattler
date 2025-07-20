@@ -13,7 +13,7 @@ namespace GameAutomation.Infrastructure
     /// </summary>
     public class MemoryManager : IDisposable
     {
-        private readonly Timer _cleanupTimer;
+        private readonly System.Threading.Timer _cleanupTimer;
         private readonly List<WeakReference> _references;
         private readonly object _lock = new object();
         private bool _disposed = false;
@@ -39,7 +39,7 @@ namespace GameAutomation.Infrastructure
             _references = new List<WeakReference>();
             
             var interval = cleanupInterval ?? TimeSpan.FromMinutes(5);
-            _cleanupTimer = new Timer(OnCleanupTimer, null, interval, interval);
+            _cleanupTimer = new System.Threading.Timer(OnCleanupTimer, null, interval, interval);
         }
 
         /// <summary>

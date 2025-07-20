@@ -13,7 +13,7 @@ namespace GameAutomation.Services
     public class CooldownService : ICooldownService
     {
         private readonly ConcurrentDictionary<CooldownKey, CooldownEntry> _cooldowns;
-        private readonly Timer _cleanupTimer;
+        private readonly System.Threading.Timer _cleanupTimer;
         private readonly IConfigurationService? _configurationService;
         private readonly MemoryManager? _memoryManager;
         private bool _disposed = false;
@@ -34,7 +34,7 @@ namespace GameAutomation.Services
             var cleanupInterval = TimeSpan.FromMinutes(cleanupIntervalMinutes);
             _maxCooldowns = _configurationService?.GetInt("cooldowns.maxCooldowns", 1000) ?? 1000;
             
-            _cleanupTimer = new Timer(CleanupExpiredCooldowns, null, cleanupInterval, cleanupInterval);
+            _cleanupTimer = new System.Threading.Timer(CleanupExpiredCooldowns, null, cleanupInterval, cleanupInterval);
         }
 
         public bool IsOnCooldown(IGameWindow window, ISpell spell)
