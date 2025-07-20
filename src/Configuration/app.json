@@ -1,0 +1,39 @@
+{
+  "input": {
+    "defaultMethod": "KeyboardEventOptimized",
+    "retryAttempts": 3,
+    "retryDelayMs": 100,
+    "timeoutMs": 5000,
+    "keyDelayMs": 50,
+    "enableBroadcastMode": false
+  },
+  "ui": {
+    "updateThrottleMs": 100,
+    "maxSpellsPerRow": 6,
+    "enableDoubleBuffering": true,
+    "refreshIntervalMs": 1000,
+    "windowListAutoRefresh": true
+  },
+  "game": {
+    "processName": "ElementClient",
+    "maxWindows": 10,
+    "autoScanOnStartup": false,
+    "validateWindowsInterval": 5000
+  },
+  "cooldowns": {
+    "enableGlobalCooldowns": true,
+    "cleanupIntervalMinutes": 30,
+    "persistCooldowns": false
+  },
+  "hotkeys": {
+    "enableGlobalHotkeys": true,
+    "registrationModifiers": ["Ctrl", "Shift"],
+    "broadcastKeys": ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+  },
+  "logging": {
+    "enableLogging": true,
+    "logLevel": "Info",
+    "logFilePath": "logs/game-automation.log",
+    "maxLogFileSizeMB": 10
+  }
+}

@@ -12,6 +12,7 @@ namespace GameAutomation.Services
         private readonly InputSimulator _inputSimulator;
         private readonly LowLevelKeyboardHook _keyboardHook;
         private readonly Dictionary<InputMethod, InputSimulator> _simulators;
+        private readonly IConfigurationService? _configurationService;
         private bool _broadcastModeEnabled = false;
         private bool _disposed = false;
 
@@ -23,14 +24,27 @@ namespace GameAutomation.Services
             set => _inputSimulator.CurrentMethod = value;
         }
 
-        public InputService()
+        public InputService(IConfigurationService? configurationService = null)
         {
+            _configurationService = configurationService;
             _inputSimulator = new InputSimulator();
             _keyboardHook = new LowLevelKeyboardHook();
             _simulators = new Dictionary<InputMethod, InputSimulator>
             {
                 { InputMethod.KeyboardEventOptimized, _inputSimulator }
             };
+            
+            // Set default input method from configuration
+            if (_configurationService != null)
+            {
+                var defaultMethodName = _configurationService.GetString("input.defaultMethod", "KeyboardEventOptimized");
+                if (Enum.TryParse<InputMethod>(defaultMethodName, out var method))
+                {
+                    CurrentInputMethod = method;
+                }
+                
+                _broadcastModeEnabled = _configurationService.GetBool("input.enableBroadcastMode", false);
+            }
             
             // Wire up keyboard hook for broadcast mode
             _keyboardHook.KeyDown += OnGlobalKeyDown;
@@ -54,6 +68,15 @@ namespace GameAutomation.Services
                     if (i < delays.Length && delays[i] > 0)
                     {
                         await Task.Delay(delays[i]);
+                    }
+                    else if (delays.Length == 0 && _configurationService != null)
+                    {
+                        // Use default delay from configuration if no delays specified
+                        var defaultDelay = _configurationService.GetInt("input.keyDelayMs", 50);
+                        if (defaultDelay > 0)
+                        {
+                            await Task.Delay(defaultDelay);
+                        }
                     }
                 }
                 
