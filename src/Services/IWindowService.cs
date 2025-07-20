@@ -15,6 +15,15 @@ namespace GameAutomation.Services
         IEnumerable<IGameWindow> GetActiveWindows();
         Task<IGameWindow?> GetMainWindowAsync();
         IGameWindow? GetWindowBySlot(int slot);
+        
+        // Additional methods for compatibility
+        void RegisterWindow(IntPtr handle, string title, System.Drawing.Rectangle rect);
+        bool UnregisterWindow(IntPtr handle);
+        IGameWindow? GetWindow(IntPtr handle);
+        IEnumerable<IGameWindow> GetAllWindows();
+        void ClearAllWindows();
+        IGameWindow? GetActiveWindow();
+        IEnumerable<IGameWindow> EnumerateGameWindows();
     }
 
     public class WindowEventArgs : EventArgs

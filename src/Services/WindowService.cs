@@ -98,13 +98,59 @@ namespace GameAutomation.Services
         {
             await Task.CompletedTask; // For async interface compliance
             
-            return _registeredWindows.Values.FirstOrDefault(w => w.IsMainWindow);
+            return _registeredWindows.Values.FirstOrDefault();
         }
 
         public IGameWindow? GetWindowBySlot(int slot)
         {
             _registeredWindows.TryGetValue(slot, out var window);
             return window;
+        }
+
+        // Additional compatibility methods
+        public void RegisterWindow(IntPtr handle, string title, System.Drawing.Rectangle rect)
+        {
+            var gameWindow = new GameWindow(handle, 0, GameClass.None, title);
+            var nextSlot = _registeredWindows.Keys.DefaultIfEmpty(0).Max() + 1;
+            _registeredWindows[nextSlot] = gameWindow;
+            WindowRegistered?.Invoke(this, new WindowEventArgs(gameWindow, "Registered"));
+        }
+
+        public bool UnregisterWindow(IntPtr handle)
+        {
+            var kvp = _registeredWindows.FirstOrDefault(x => x.Value.WindowHandle == handle);
+            if (kvp.Value != null)
+            {
+                _registeredWindows.Remove(kvp.Key);
+                WindowRemoved?.Invoke(this, new WindowEventArgs(kvp.Value, "Removed"));
+                return true;
+            }
+            return false;
+        }
+
+        public IGameWindow? GetWindow(IntPtr handle)
+        {
+            return _registeredWindows.Values.FirstOrDefault(w => w.WindowHandle == handle);
+        }
+
+        public IEnumerable<IGameWindow> GetAllWindows()
+        {
+            return _registeredWindows.Values;
+        }
+
+        public void ClearAllWindows()
+        {
+            _registeredWindows.Clear();
+        }
+
+        public IGameWindow? GetActiveWindow()
+        {
+            return _windowManager.GetActiveWindow();
+        }
+
+        public IEnumerable<IGameWindow> EnumerateGameWindows()
+        {
+            return _windowManager.EnumerateGameWindows();
         }
 
         public void Dispose()

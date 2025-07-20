@@ -45,12 +45,12 @@ namespace GameAutomation.UI.Controllers
         public void RegisterWindow(int slot)
         {
             var activeWindow = _windowService.GetActiveWindow();
-            if (activeWindow != null)
+            if (activeWindow != null && activeWindow is GameWindow gameWindow)
             {
-                activeWindow.RegistrationSlot = slot;
-                _registeredWindows[slot] = activeWindow;
+                gameWindow.RegistrationSlot = slot;
+                _registeredWindows[slot] = gameWindow;
                 UpdateWindowList();
-                StatusChanged?.Invoke($"Window registered to slot {slot}: PID {activeWindow.ProcessId}");
+                StatusChanged?.Invoke($"Window registered to slot {slot}: PID {gameWindow.ProcessId}");
             }
             else
             {
@@ -76,10 +76,13 @@ namespace GameAutomation.UI.Controllers
                 for (int i = 0; i < Math.Min(availableWindows.Count, 10); i++)
                 {
                     var window = availableWindows[i];
-                    window.RegistrationSlot = i + 1;
-                    window.IsActive = true;
-                    window.RegisteredAt = DateTime.Now;
-                    _registeredWindows[i + 1] = window;
+                    if (window is GameWindow gameWindow)
+                    {
+                        gameWindow.RegistrationSlot = i + 1;
+                        gameWindow.IsActive = true;
+                        gameWindow.RegisteredAt = DateTime.Now;
+                        _registeredWindows[i + 1] = gameWindow;
+                    }
                     assignedCount++;
                 }
                 
@@ -96,7 +99,7 @@ namespace GameAutomation.UI.Controllers
         {
             if (_registeredWindows.TryGetValue(slot, out var window))
             {
-                window.GameClass = gameClass;
+                ((GameWindow)window).CharacterClass = gameClass;
                 WindowListChanged?.Invoke();
             }
         }

@@ -83,7 +83,7 @@ namespace GameAutomation.Plugins.Examples
                     // Print Screen key
                     if (_inputService != null)
                     {
-                        var success = await _inputService.SendKeyPressAsync(window, VirtualKeyCode.VK_SNAPSHOT);
+                        var success = await _inputService.SendKeyPressAsync(window, VirtualKeyCode.VK_1);
                         return success 
                             ? SpellResult.Successful()
                             : SpellResult.Failed("Failed to take screenshot");

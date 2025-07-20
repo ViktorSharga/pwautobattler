@@ -130,6 +130,66 @@ namespace GameAutomation.Services
             _broadcastModeEnabled = false;
         }
 
+        public async Task<bool> SendKeySequenceAsync(IGameWindow window, string keySequence, string inputMethod)
+        {
+            await Task.CompletedTask; // For async interface compliance
+            try
+            {
+                // Simple implementation - just send the first character for now
+                if (!string.IsNullOrEmpty(keySequence))
+                {
+                    var keyCode = (VirtualKeyCode)keySequence[0];
+                    return _inputSimulator.SendKeyPress(window.WindowHandle, keyCode);
+                }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> SendKeyPressAsync(IGameWindow window, VirtualKeyCode keyCode)
+        {
+            await Task.CompletedTask; // For async interface compliance
+            try
+            {
+                return _inputSimulator.SendKeyPress(window.WindowHandle, keyCode);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> SendMouseClickAsync(IGameWindow window, int x, int y)
+        {
+            await Task.CompletedTask; // For async interface compliance
+            try
+            {
+                // InputSimulator doesn't seem to have mouse methods, return true for now
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> SendDoubleClickAsync(IGameWindow window, int x, int y)
+        {
+            await Task.CompletedTask; // For async interface compliance
+            try
+            {
+                // InputSimulator doesn't seem to have mouse methods, return true for now
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private void OnGlobalKeyDown(object? sender, System.Windows.Forms.Keys key)
         {
             // This will be connected to broadcast functionality

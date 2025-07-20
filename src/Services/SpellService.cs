@@ -123,9 +123,9 @@ namespace GameAutomation.Services
                     var gameClass = ParseGameClass(classEntry.Key);
                     var spells = new List<ISpell>();
 
-                    foreach (var spellData in classEntry.Value.Spells)
+                    foreach (var spellInfo in classEntry.Value.Spells)
                     {
-                        var spell = CreateSpellFromData(spellData);
+                        var spell = CreateSpellFromData(spellInfo);
                         _spells[spell.Id] = spell;
                         spells.Add(spell);
                     }

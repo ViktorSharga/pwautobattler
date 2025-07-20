@@ -43,7 +43,7 @@ namespace GameAutomation.UI
         {
             // Initialize services (in a real implementation, these would be injected)
             _windowService = new WindowService();
-            _inputService = new InputService(_windowService);
+            _inputService = new InputService();
             _cooldownService = new CooldownService();
             _spellService = new SpellService(_inputService, _cooldownService);
             _hotkeyManager = new HotkeyManager();
@@ -226,7 +226,7 @@ namespace GameAutomation.UI
             var key = e;
             if (key >= Keys.D1 && key <= Keys.D9)
             {
-                var keyCode = VirtualKeyCode.VK_1 + (key - Keys.D1);
+                var keyCode = (VirtualKeyCode)((int)VirtualKeyCode.VK_1 + (key - Keys.D1));
                 BroadcastKeyToWindows(activeWindows, keyCode);
             }
         }
@@ -273,7 +273,7 @@ namespace GameAutomation.UI
         {
             foreach (var window in windows)
             {
-                _ = _inputService.SendMouseClickAsync(window, x, y, isLeftClick);
+                _ = _inputService.SendMouseClickAsync(window, x, y);
             }
         }
 
@@ -301,7 +301,6 @@ namespace GameAutomation.UI
             _hotkeyManager?.StopListening();
             _keyboardHook?.Dispose();
             _mouseHook?.Dispose();
-            _backgroundMouseSimulator?.Dispose();
             _spellButtonController?.Dispose();
             
             base.OnFormClosed(e);

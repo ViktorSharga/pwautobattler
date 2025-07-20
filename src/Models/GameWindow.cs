@@ -24,6 +24,15 @@ namespace GameAutomation.Models
             RegisteredAt = DateTime.Now;
         }
 
+        public GameWindow(IntPtr handle, int slot, GameClass gameClass, string title)
+        {
+            WindowHandle = handle;
+            RegistrationSlot = slot;
+            CharacterClass = gameClass;
+            WindowTitle = title;
+            RegisteredAt = DateTime.Now;
+        }
+
         public override string ToString()
         {
             var classText = CharacterClass == GameClass.None ? "" : $" ({CharacterClass})";
