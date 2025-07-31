@@ -32,6 +32,9 @@ namespace GameAutomation.Core
         [DllImport("user32.dll")]
         private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
 
+        [DllImport("user32.dll")]
+        private static extern bool IsZoomed(IntPtr hWnd);
+
         [StructLayout(LayoutKind.Sequential)]
         public struct POINT
         {
@@ -81,8 +84,11 @@ namespace GameAutomation.Core
                     return false;
                 }
 
-                // Create lParam with coordinates
-                var lParam = (IntPtr)((clientPoint.y << 16) | (clientPoint.x & 0xFFFF));
+                // Debug logging for coordinate transformation
+                System.Diagnostics.Debug.WriteLine($"Screen coords: ({screenX}, {screenY}) -> Client coords: ({clientPoint.x}, {clientPoint.y})");
+
+                // Create lParam with coordinates - ensure proper packing to avoid sign extension issues
+                var lParam = (IntPtr)((uint)((ushort)clientPoint.y << 16) | (uint)(ushort)clientPoint.x);
 
                 switch (method)
                 {
@@ -135,7 +141,7 @@ namespace GameAutomation.Core
         private bool SendMouseClickDirectClient(IntPtr windowHandle, int clientX, int clientY, MouseButton button)
         {
             // Try direct client coordinate approach
-            var lParam = (IntPtr)((clientY << 16) | (clientX & 0xFFFF));
+            var lParam = (IntPtr)((uint)((ushort)clientY << 16) | (uint)(ushort)clientX);
             var downMsg = button == MouseButton.Left ? WM_LBUTTONDOWN : WM_RBUTTONDOWN;
             var upMsg = button == MouseButton.Left ? WM_LBUTTONUP : WM_RBUTTONUP;
 
@@ -171,8 +177,8 @@ namespace GameAutomation.Core
                     return false;
                 }
 
-                // Create lParam with coordinates
-                var lParam = (IntPtr)((clientPoint.y << 16) | (clientPoint.x & 0xFFFF));
+                // Create lParam with coordinates - ensure proper packing to avoid sign extension issues
+                var lParam = (IntPtr)((uint)((ushort)clientPoint.y << 16) | (uint)(ushort)clientPoint.x);
 
                 switch (method)
                 {
@@ -234,7 +240,7 @@ namespace GameAutomation.Core
 
         private bool SendMouseDoubleClickDirectClient(IntPtr windowHandle, int clientX, int clientY, MouseButton button)
         {
-            var lParam = (IntPtr)((clientY << 16) | (clientX & 0xFFFF));
+            var lParam = (IntPtr)((uint)((ushort)clientY << 16) | (uint)(ushort)clientX);
             var downMsg = button == MouseButton.Left ? WM_LBUTTONDOWN : WM_RBUTTONDOWN;
             var upMsg = button == MouseButton.Left ? WM_LBUTTONUP : WM_RBUTTONUP;
             var dblclkMsg = button == MouseButton.Left ? WM_LBUTTONDBLCLK : WM_RBUTTONDBLCLK;

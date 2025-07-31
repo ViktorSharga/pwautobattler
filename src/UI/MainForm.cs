@@ -38,6 +38,7 @@ namespace GameAutomation.UI
         private Label _methodLabel = null!;
         private CheckBox _broadcastModeCheckBox = null!;
         private bool _broadcastMode = false;
+        private bool _isExecutingSpell = false;
         private LowLevelKeyboardHook? _keyboardHook;
         private CheckBox _mouseMirroringCheckBox = null!;
         private bool _mouseMirroringMode = false;
@@ -1042,6 +1043,9 @@ namespace GameAutomation.UI
             // Find main window
             var mainWindow = _registeredWindows.Values.FirstOrDefault(w => w.IsMainWindow && w.IsActive);
             
+            // Set spell execution flag to prevent broadcast interference
+            _isExecutingSpell = true;
+            
             // Temporarily disable global key listener to prevent broadcast interference
             _keyboardHook?.StopListening();
             
@@ -1072,6 +1076,9 @@ namespace GameAutomation.UI
             }
             finally
             {
+                // Clear spell execution flag
+                _isExecutingSpell = false;
+                
                 // Re-enable global key listener if broadcast mode is still on
                 if (_broadcastMode)
                 {
@@ -1982,6 +1989,9 @@ namespace GameAutomation.UI
         {
             if (!_broadcastMode) return;
             
+            // Don't broadcast if currently executing a spell to prevent loop dependencies
+            if (_isExecutingSpell) return;
+            
             // Only handle keys 1-9 when broadcast mode is enabled
             int keyNumber = key switch
             {
@@ -2048,10 +2058,17 @@ namespace GameAutomation.UI
         {
             if (!_mouseMirroringMode) return;
             
-            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+            // Get the window where the click originated to exclude it from broadcast
+            var sourceWindow = _windowManager.GetActiveWindow();
+            var sourceHandle = sourceWindow?.WindowHandle ?? IntPtr.Zero;
+            
+            var windows = _registeredWindows.Values
+                .Where(w => w.IsActive && w.WindowHandle != sourceHandle)
+                .ToList();
+                
             if (windows.Count == 0)
             {
-                UpdateStatus("No active windows to mirror mouse clicks to.");
+                UpdateStatus("No other active windows to mirror mouse clicks to.");
                 return;
             }
 
@@ -2063,10 +2080,17 @@ namespace GameAutomation.UI
         {
             if (!_mouseMirroringMode) return;
             
-            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+            // Get the window where the click originated to exclude it from broadcast
+            var sourceWindow = _windowManager.GetActiveWindow();
+            var sourceHandle = sourceWindow?.WindowHandle ?? IntPtr.Zero;
+            
+            var windows = _registeredWindows.Values
+                .Where(w => w.IsActive && w.WindowHandle != sourceHandle)
+                .ToList();
+                
             if (windows.Count == 0)
             {
-                UpdateStatus("No active windows to mirror mouse clicks to.");
+                UpdateStatus("No other active windows to mirror mouse clicks to.");
                 return;
             }
 
@@ -2078,10 +2102,17 @@ namespace GameAutomation.UI
         {
             if (!_shiftDoubleClickMode) return;
             
-            var windows = _registeredWindows.Values.Where(w => w.IsActive).ToList();
+            // Get the window where the click originated to exclude it from broadcast
+            var sourceWindow = _windowManager.GetActiveWindow();
+            var sourceHandle = sourceWindow?.WindowHandle ?? IntPtr.Zero;
+            
+            var windows = _registeredWindows.Values
+                .Where(w => w.IsActive && w.WindowHandle != sourceHandle)
+                .ToList();
+                
             if (windows.Count == 0)
             {
-                UpdateStatus("No active windows to send double-click to.");
+                UpdateStatus("No other active windows to send double-click to.");
                 return;
             }
 
